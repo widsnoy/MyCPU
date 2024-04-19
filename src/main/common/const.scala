@@ -3,7 +3,8 @@ package common
 import chisel3._
 
 object Consts {
-    val WORD_LEN    = 32
+    val LENX    = 32
+    val LENx    = 5
 
     val EXE_FUN_LEN = 5
     val ALU_X       =  0.U(EXE_FUN_LEN.W)
@@ -36,16 +37,16 @@ object Consts {
     val OP2_RS2 = 1.U(OP2_LEN.W)
     val OP2_UI5 = 2.U(OP2_LEN.W)
     val OP2_SI12 = 3.U(OP2_LEN.W)
-    val OP2_SI20 = 4.U(OP2_LEN.W)
+    val OP2_SI20_SEX = 4.U(OP2_LEN.W)
     val OP2_OF16 = 5.U(OP2_LEN.W)
     val OP2_OF26 = 6.U(OP2_LEN.W)
     val OP2_RD   = 7.U(OP2_LEN.W)
     val OP2_OF16_SEX    = 8.U(OP2_LEN.W)
     val OP2_OF26_SEX    = 9.U(OP2_LEN.W)
 
-    val MEN_LEN = 1
+    val MEN_LEN = 4
     val MEN_X   = 0.U(MEN_LEN.W)
-    val MEN_S   = 1.U(MEN_LEN.W)
+    val MEN_S   = 15.U(MEN_LEN.W)
 
     val REN_LEN = 1
     val REN_X   = 0.U(REN_LEN.W)
