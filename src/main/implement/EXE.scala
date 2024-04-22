@@ -11,6 +11,8 @@ class EXE_Stage extends Module {
         val es_allowin = Output(UInt(1.W))
         val ms_allowin = Input(UInt(1.W))
         val to_mem      = new MEM_INFO
+        val data = new RAM_IO()
+        val wrf  = new WRF_INFO()
     })
     val es_valid       = RegInit(0.U(1.W))
     val es_ready_go    = 1.U(1.W)
@@ -54,6 +56,15 @@ class EXE_Stage extends Module {
         (exe_fun === ALU_SRA)   -> (op1_data.asSInt >> op2_data(4, 0))(31, 0).asUInt,
         (exe_fun === ALU_LU12I) -> op2_data
     ))
+
+    io.wrf.valid := rf_wen & es_valid & (dest =/= 0.U(32.W)).asUInt
+    io.wrf.dest  := dest
+
+    io.data.wen := Fill(4, (mem_wen & es_valid)) 
+    io.data.wdata := rs3_rd
+    io.data.addr := alu_out
+    io.data.en   := 1.U(1.W)
+
     io.to_mem.exe_fun   := exe_fun
     io.to_mem.rf_wen    := rf_wen
     io.to_mem.wb_sel    := wb_sel

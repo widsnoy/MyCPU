@@ -10,10 +10,11 @@ class WB_Stage extends Module {
         val ms = Flipped(new WB_INFO())
         val ws_allowin = Output(UInt(1.W))
         val debug   = new DEBUG()
-        val data_rdata = Input(UInt(LENX.W))
+        
         val reg_wen = Output(UInt(1.W))
         val reg_wr  = Output(UInt(LENx.W))
         val reg_wdata = Output(UInt(LENX.W))
+        val wrf  = new WRF_INFO()
     })
     val ws_ready_go    = 1.U(1.W)
     val ws_valid       = RegInit(0.U(1.W))
@@ -27,6 +28,7 @@ class WB_Stage extends Module {
     val wb_sel  = RegInit(0.U(WB_SEL_LEN.W))
     val pc      = RegInit(0.U(LENX.W))
     val alu_out = RegInit(0.U(LENX.W))
+    val data_src= RegInit(0.U(LENX.W))
     when ((ws_allowin & io.ms.valid).asUInt === 1.U) {
         dest        := io.ms.dest
         exe_fun     := io.ms.exe_fun
@@ -34,19 +36,23 @@ class WB_Stage extends Module {
         wb_sel      := io.ms.wb_sel
         pc          := io.ms.pc
         alu_out     := io.ms.alu_out
+        data_src    := io.ms.data_src
     }
     val wb_data = MuxCase(alu_out, Seq(
-        (wb_sel === WB_MEM) -> io.data_rdata,
+        (wb_sel === WB_MEM) -> data_src,
         (wb_sel === WB_PC)  -> (pc + 4.U(LENX.W))
     ))
-    val wb_addr = Mux(exe_fun === BR_BL, 1.U(LENx.W), dest)
+    val wb_addr = dest
     
-    io.reg_wen := rf_wen
+    io.wrf.valid := rf_wen & ws_valid & (dest =/= 0.U(32.W)).asUInt
+    io.wrf.dest  := dest
+
+    io.reg_wen := rf_wen & ws_valid & (dest =/= 0.U(32.W)).asUInt
     io.reg_wr := wb_addr
     io.reg_wdata := wb_data
 
     io.debug.wb_pc      := pc
-    io.debug.wb_rf_wen  := Fill(4, rf_wen(0))
+    io.debug.wb_rf_wen  := Fill(4, rf_wen & ws_valid & (dest =/= 0.U(32.W)).asUInt)
     io.debug.wb_rf_wnum := wb_addr
     io.debug.wb_rf_wdata:= wb_data
 }

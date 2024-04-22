@@ -19,9 +19,12 @@ class ID_Stage extends Module {
         val reg_rdata1 = Input(UInt(LENX.W))
         val reg_rdata2 = Input(UInt(LENX.W))
         val reg_rdata3 = Input(UInt(LENX.W))
+        val wr_EX      = Flipped(new WRF_INFO())
+        val wr_MEM      = Flipped(new WRF_INFO())
+        val wr_WB      = Flipped(new WRF_INFO())
     })
+    val ds_ready_go    = Wire(UInt(1.W))
     val ds_valid       = RegInit(0.U(1.W))
-    val ds_ready_go    = 1.U(1.W)
     val ds_allowin     = (~ds_valid) | (io.es_allowin & ds_ready_go)
     when (ds_allowin === 1.U) {ds_valid := io.fs.valid}
     io.to_exe.valid   := ds_valid & ds_ready_go
@@ -65,8 +68,8 @@ class ID_Stage extends Module {
             srli_w  -> List(ALU_SRL, OP1_RS1, OP2_UI5, MEN_X, REN_S, WB_ALU),
             srai_w  -> List(ALU_SRA, OP1_RS1, OP2_UI5, MEN_X, REN_S, WB_ALU),
             addi_w  -> List(ALU_ADD, OP1_RS1, OP2_SI12, MEN_X, REN_S, WB_ALU),
-            ld_w    -> List(ALU_SL, OP1_RS1, OP2_SI12, MEN_X, REN_S, WB_MEM),
-            st_w    -> List(ALU_SL, OP1_RS1, OP2_SI12, MEN_S, REN_X, WB_X),
+            ld_w    -> List(LD, OP1_RS1, OP2_SI12, MEN_X, REN_S, WB_MEM),
+            st_w    -> List(ST, OP1_RS1, OP2_SI12, MEN_S, REN_X, WB_X),
             jirl    -> List(BR_JIRL, OP1_RS1, OP2_OF16_SEX, MEN_X, REN_S, WB_PC),
             inst_b  -> List(BR_B, OP1_PC, OP2_OF26_SEX, MEN_X, REN_X, WB_X),
             inst_bl -> List(BR_BL, OP1_PC, OP2_OF26_SEX, MEN_X, REN_S, WB_PC),
@@ -76,7 +79,7 @@ class ID_Stage extends Module {
         )
     )
     val exe_fun :: op1_sel :: op2_sel :: mem_wen :: rf_wen :: wb_sel :: Nil = ID_signals
-
+    
     val op1_data = MuxCase(0.U(32.W), Seq(
         (op1_sel === OP1_RS1) -> rs1_rd,
         (op1_sel === OP1_PC)  -> pc
@@ -92,14 +95,33 @@ class ID_Stage extends Module {
         (op2_sel === OP2_OF26_SEX) -> of26_sex,
         (op2_sel === OP2_OF16_SEX) -> of16_sex
     ))
+
+    ds_ready_go := MuxCase(1.U(1.W), Seq(
+        (op1_sel === OP1_RS1 && io.wr_EX.valid === 1.U && io.wr_EX.dest =/= 0.U(LENx.W) && io.wr_EX.dest === rj) -> 0.U(1.W),
+        (op1_sel === OP1_RS1 && io.wr_MEM.valid === 1.U && io.wr_MEM.dest =/= 0.U(LENx.W) && io.wr_MEM.dest === rj) -> 0.U(1.W),
+        (op1_sel === OP1_RS1 && io.wr_WB.valid === 1.U && io.wr_WB.dest =/= 0.U(LENx.W) && io.wr_WB.dest === rj) -> 0.U(1.W),
+        (op2_sel === OP2_RS2 && io.wr_EX.valid === 1.U && io.wr_EX.dest =/= 0.U(LENx.W) && io.wr_EX.dest === rk) -> 0.U(1.W),
+        (op2_sel === OP2_RS2 && io.wr_MEM.valid === 1.U && io.wr_MEM.dest =/= 0.U(LENx.W) && io.wr_MEM.dest === rk) -> 0.U(1.W),
+        (op2_sel === OP2_RS2 && io.wr_WB.valid === 1.U && io.wr_WB.dest =/= 0.U(LENx.W) && io.wr_WB.dest === rk) -> 0.U(1.W),
+        ((exe_fun === BR_BEQ || exe_fun === BR_BNE) && io.wr_EX.valid === 1.U && io.wr_EX.dest =/= 0.U(LENx.W) && io.wr_EX.dest === rj) -> 0.U(1.W),
+        ((exe_fun === BR_BEQ || exe_fun === BR_BNE) && io.wr_MEM.valid === 1.U && io.wr_MEM.dest =/= 0.U(LENx.W) && io.wr_MEM.dest === rj) -> 0.U(1.W),
+        ((exe_fun === BR_BEQ || exe_fun === BR_BNE) && io.wr_WB.valid === 1.U && io.wr_WB.dest =/= 0.U(LENx.W) && io.wr_WB.dest === rj) -> 0.U(1.W),
+        ((exe_fun === BR_BEQ || exe_fun === BR_BNE) && io.wr_EX.valid === 1.U && io.wr_EX.dest =/= 0.U(LENx.W) && io.wr_EX.dest === rd) -> 0.U(1.W),
+        ((exe_fun === BR_BEQ || exe_fun === BR_BNE) && io.wr_MEM.valid === 1.U && io.wr_MEM.dest =/= 0.U(LENx.W) && io.wr_MEM.dest === rd) -> 0.U(1.W),
+        ((exe_fun === BR_BEQ || exe_fun === BR_BNE) && io.wr_WB.valid === 1.U && io.wr_WB.dest =/= 0.U(LENx.W) && io.wr_WB.dest === rd) -> 0.U(1.W),
+        (exe_fun === ST && io.wr_EX.valid === 1.U && io.wr_EX.dest =/= 0.U(LENx.W) && io.wr_EX.dest === rd) -> 0.U(1.W),
+        (exe_fun === ST && io.wr_MEM.valid === 1.U && io.wr_MEM.dest =/= 0.U(LENx.W) && io.wr_MEM.dest === rd) -> 0.U(1.W),
+        (exe_fun === ST && io.wr_WB.valid === 1.U && io.wr_WB.dest =/= 0.U(LENx.W) && io.wr_WB.dest === rd) -> 0.U(1.W)
+    ))
+
     //branch
-    io.br.flg := MuxCase(false.B, Seq(
+    io.br.flg := Mux(ds_valid === 0.U, false.B, MuxCase(false.B, Seq(
         (exe_fun === BR_BL) -> true.B,
         (exe_fun === BR_B)  -> true.B,
         (exe_fun === BR_JIRL)  -> true.B,
         (exe_fun === BR_BNE)   -> (rs1_rd =/= rs3_rd),
         (exe_fun === BR_BEQ)   -> (rs1_rd === rs3_rd)
-    ))
+    )))
     io.br.target := op1_data + op2_data
 
     io.to_exe.exe_fun := exe_fun
@@ -110,5 +132,5 @@ class ID_Stage extends Module {
     io.to_exe.rf_wen  := rf_wen
     io.to_exe.pc := pc
     io.to_exe.rs3_rd := rs3_rd
-    io.to_exe.dest  := rd
+    io.to_exe.dest  := Mux(exe_fun === BR_BL, 1.U(LENx.W), rd)
 }

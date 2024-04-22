@@ -34,16 +34,19 @@ class widsnoy_cpu extends Module {
     ID.io.reg_rdata1 <> regfile.io.reg.rdata1
     ID.io.reg_rdata2 <> regfile.io.reg.rdata2
     ID.io.reg_rdata3 <> regfile.io.reg.rdata3
+    ID.io.wr_EX     <> EX.io.wrf
+    ID.io.wr_MEM    <> MEM.io.wrf
+    ID.io.wr_WB     <> WB.io.wrf
 
     EX.io.ms_allowin <> MEM.io.ms_allowin
     EX.io.to_mem     <> MEM.io.es
+    EX.io.data       <> io.data
 
     MEM.io.ws_allowin <> WB.io.ws_allowin
     MEM.io.to_wb      <> WB.io.ms
-    MEM.io.data       <> io.data
+    MEM.io.data_rdata  <> io.data.rdata
 
     WB.io.debug       <> io.debug
-    WB.io.data_rdata  <> io.data.rdata
     WB.io.reg_wen     <> regfile.io.reg.wen
     WB.io.reg_wr      <> regfile.io.reg.wr
     WB.io.reg_wdata   <> regfile.io.reg.wdata

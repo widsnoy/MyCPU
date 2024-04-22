@@ -28,7 +28,7 @@ class IF_Stage extends Module {
     io.inst.en      := (to_fs_valid & fs_allowin)
     io.inst.addr    := next_pc
 
-    io.to_ds.valid  := fs_valid & fs_ready_go
+    io.to_ds.valid  := fs_valid & fs_ready_go & (~io.br.flg.asUInt)
     io.to_ds.pc     := pc
     io.to_ds.inst   := io.inst.rdata
 

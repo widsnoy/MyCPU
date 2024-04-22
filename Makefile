@@ -1,4 +1,4 @@
-BUILD_DIR = ./build/Verilog
+BUILD_DIR = ./build
 
 PRJ = playground
 
@@ -7,8 +7,7 @@ test:
 
 verilog:
 	$(call git_commit, "generate verilog")
-	rm -r $(BUILD_DIR)
-	mkdir -p $(BUILD_DIR)
+	rm $(BUILD_DIR)/widsnoy_cpu.sv
 	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR)
 
 help:

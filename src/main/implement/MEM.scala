@@ -10,8 +10,9 @@ class MEM_Stage extends Module {
         val es = Flipped(new MEM_INFO())
         val ms_allowin = Output(UInt(1.W))
         val ws_allowin = Input(UInt(1.W))
+        val data_rdata = Input(UInt(LENX.W))
         val to_wb = new WB_INFO()
-        val data = new RAM_IO()
+        val wrf  = new WRF_INFO()
     })
 
     val ms_ready_go    = 1.U(1.W)
@@ -20,7 +21,7 @@ class MEM_Stage extends Module {
     when (ms_allowin === 1.U) {ms_valid := io.es.valid}
     io.to_wb.valid       := ms_valid & ms_ready_go
     io.ms_allowin     := ms_allowin
-
+    
     val dest    = RegInit(0.U(LENx.W))
     val exe_fun = RegInit(0.U(EXE_FUN_LEN.W))
     val rf_wen  = RegInit(0.U(REN_LEN.W))
@@ -39,10 +40,9 @@ class MEM_Stage extends Module {
         rs3_rd      := io.es.rs3_rd
         alu_out     := io.es.alu_out
     }
-    io.data.wen := mem_wen
-    io.data.wdata := rs3_rd
-    io.data.addr := alu_out
-    io.data.en   := 1.U(1.W)
+
+    io.wrf.valid := rf_wen & ms_valid & (dest =/= 0.U(32.W)).asUInt
+    io.wrf.dest  := dest
 
     io.to_wb.exe_fun   := exe_fun
     io.to_wb.rf_wen    := rf_wen
@@ -50,4 +50,5 @@ class MEM_Stage extends Module {
     io.to_wb.pc        := pc
     io.to_wb.alu_out   := alu_out
     io.to_wb.dest      := dest
+    io.to_wb.data_src  := io.data_rdata
 }
