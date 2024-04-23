@@ -54,11 +54,15 @@ class EXE_Stage extends Module {
         (exe_fun === ALU_SLL)   -> (op1_data << op2_data(4, 0))(31, 0).asUInt,
         (exe_fun === ALU_SRL)   -> (op1_data >> op2_data(4, 0))(31, 0).asUInt,
         (exe_fun === ALU_SRA)   -> (op1_data.asSInt >> op2_data(4, 0))(31, 0).asUInt,
-        (exe_fun === ALU_LU12I) -> op2_data
+        (exe_fun === ALU_LU12I) -> op2_data,
+        (exe_fun === BR_JIRL)   -> (pc + 4.U(32.W)),
+        (exe_fun === BR_BL)     -> (pc + 4.U(32.W))
     ))
 
     io.wrf.valid := rf_wen & es_valid & (dest =/= 0.U(32.W)).asUInt
+    io.wrf.ready := (exe_fun =/= LD).asUInt
     io.wrf.dest  := dest
+    io.wrf.wdata := alu_out
 
     io.data.wen := Fill(4, (mem_wen & es_valid)) 
     io.data.wdata := rs3_rd

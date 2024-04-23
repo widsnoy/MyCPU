@@ -7,7 +7,7 @@ test:
 
 verilog:
 	$(call git_commit, "generate verilog")
-	rm $(BUILD_DIR)/widsnoy_cpu.sv
+	rm -f $(BUILD_DIR)/widsnoy_cpu.sv
 	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR)
 
 help:

@@ -68,9 +68,10 @@ class WB_INFO extends Bundle {
     val pc = Output(UInt(LENX.W))
     val alu_out = Output(UInt(LENX.W))
     val dest  = Output(UInt(LENx.W))
-    val data_src = Output(UInt(LENX.W))
 }
 class WRF_INFO extends Bundle {
     val valid = Output(UInt(1.W))
+    val ready = Output(UInt(1.W))
     val dest  = Output(UInt(LENx.W))
+    val wdata = Output(UInt(LENX.W))
 }

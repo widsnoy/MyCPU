@@ -28,7 +28,6 @@ class WB_Stage extends Module {
     val wb_sel  = RegInit(0.U(WB_SEL_LEN.W))
     val pc      = RegInit(0.U(LENX.W))
     val alu_out = RegInit(0.U(LENX.W))
-    val data_src= RegInit(0.U(LENX.W))
     when ((ws_allowin & io.ms.valid).asUInt === 1.U) {
         dest        := io.ms.dest
         exe_fun     := io.ms.exe_fun
@@ -36,16 +35,14 @@ class WB_Stage extends Module {
         wb_sel      := io.ms.wb_sel
         pc          := io.ms.pc
         alu_out     := io.ms.alu_out
-        data_src    := io.ms.data_src
     }
-    val wb_data = MuxCase(alu_out, Seq(
-        (wb_sel === WB_MEM) -> data_src,
-        (wb_sel === WB_PC)  -> (pc + 4.U(LENX.W))
-    ))
+    val wb_data = alu_out
     val wb_addr = dest
     
     io.wrf.valid := rf_wen & ws_valid & (dest =/= 0.U(32.W)).asUInt
+    io.wrf.ready := 1.U
     io.wrf.dest  := dest
+    io.wrf.wdata := alu_out
 
     io.reg_wen := rf_wen & ws_valid & (dest =/= 0.U(32.W)).asUInt
     io.reg_wr := wb_addr

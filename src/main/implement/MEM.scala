@@ -40,15 +40,16 @@ class MEM_Stage extends Module {
         rs3_rd      := io.es.rs3_rd
         alu_out     := io.es.alu_out
     }
-
+    val temp = Mux(wb_sel === WB_MEM, io.data_rdata, alu_out)
     io.wrf.valid := rf_wen & ms_valid & (dest =/= 0.U(32.W)).asUInt
+    io.wrf.ready := 1.U
     io.wrf.dest  := dest
+    io.wrf.wdata := temp
 
     io.to_wb.exe_fun   := exe_fun
     io.to_wb.rf_wen    := rf_wen
     io.to_wb.wb_sel    := wb_sel
     io.to_wb.pc        := pc
-    io.to_wb.alu_out   := alu_out
+    io.to_wb.alu_out   := temp
     io.to_wb.dest      := dest
-    io.to_wb.data_src  := io.data_rdata
 }
