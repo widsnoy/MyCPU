@@ -11,9 +11,9 @@ class IF_Stage extends Module {
         val inst    = new RAM_IO()
         val to_ds   = new ID_INFO()
         val br      = Flipped(new BR_INFO())
-        val ds_allowin = Input(UInt(1.W))
+        val ds_allowin = Input(Bool())
     })
-    val to_fs_valid    = ~reset.asUInt
+    val to_fs_valid    = RegNext(!reset.asBool)
     val fs_ready_go    = 1.U(1.W)
     val fs_valid       = RegInit(0.U(1.W))
     val fs_allowin     = (~fs_valid) | (io.ds_allowin & fs_ready_go)

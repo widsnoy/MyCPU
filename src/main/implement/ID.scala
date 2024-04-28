@@ -9,9 +9,9 @@ import common.Instructions._
 class ID_Stage extends Module {
     val io = IO(new Bundle {
         val fs = Flipped(new ID_INFO())
-        val ds_allowin = Output(UInt(1.W))
-        val es_allowin = Input(UInt(1.W))
-        val br      = new BR_INFO()
+        val ds_allowin = Output(Bool())
+        val es_allowin = Input(Bool())
+        val br     = new BR_INFO()
         val to_exe = new EX_INFO()
         val reg_r1 = Output(UInt(LENx.W))
         val reg_r2 = Output(UInt(LENx.W))
@@ -20,18 +20,18 @@ class ID_Stage extends Module {
         val reg_rdata2 = Input(UInt(LENX.W))
         val reg_rdata3 = Input(UInt(LENX.W))
         val wr_EX      = Flipped(new WRF_INFO())
-        val wr_MEM      = Flipped(new WRF_INFO())
+        val wr_MEM     = Flipped(new WRF_INFO())
         val wr_WB      = Flipped(new WRF_INFO())
     })
-    val ds_ready_go    = Mux(io.wr_EX.valid === 1.U, io.wr_EX.ready, 1.U)
-    val ds_valid       = RegInit(0.U(1.W))
-    val ds_allowin     = (~ds_valid) | (io.es_allowin & ds_ready_go)
-    when (ds_allowin === 1.U) {ds_valid := io.fs.valid}
-    io.to_exe.valid   := ds_valid & ds_ready_go
+    val ds_ready_go    = Mux(io.wr_EX.valid, io.wr_EX.ready, true.B)
+    val ds_valid       = RegInit(false.B)
+    val ds_allowin     = !ds_valid || (io.es_allowin && ds_ready_go)
+    when (ds_allowin) {ds_valid := io.fs.valid}
+    io.to_exe.valid   := ds_valid && ds_ready_go
     io.ds_allowin     := ds_allowin
     val inst = RegInit(0.U(LENX.W))
     val pc   = RegInit(0.U(LENX.W))
-    when ((ds_allowin & io.fs.valid) === 1.U) {
+    when (ds_allowin && io.fs.valid) {
         inst := io.fs.inst
         pc   := io.fs.pc
     }
@@ -43,53 +43,66 @@ class ID_Stage extends Module {
     io.reg_r3   := rd
     
     val rs1_rd  = MuxCase(io.reg_rdata1, Seq(
-        (io.wr_EX.valid.asBool && (io.wr_EX.dest === rj)) -> io.wr_EX.wdata,
-        (io.wr_MEM.valid.asBool && (io.wr_MEM.dest === rj)) -> io.wr_MEM.wdata,
-        (io.wr_WB.valid.asBool && (io.wr_WB.dest === rj)) -> io.wr_WB.wdata
+        (io.wr_EX.valid && (io.wr_EX.dest === rj)) -> io.wr_EX.wdata,
+        (io.wr_MEM.valid && (io.wr_MEM.dest === rj)) -> io.wr_MEM.wdata,
+        (io.wr_WB.valid && (io.wr_WB.dest === rj)) -> io.wr_WB.wdata
     ))
     val rs2_rd  = MuxCase(io.reg_rdata2, Seq(
-        (io.wr_EX.valid.asBool && (io.wr_EX.dest === rk)) -> io.wr_EX.wdata,
-        (io.wr_MEM.valid.asBool && (io.wr_MEM.dest === rk)) -> io.wr_MEM.wdata,
-        (io.wr_WB.valid.asBool && (io.wr_WB.dest === rk)) -> io.wr_WB.wdata
+        (io.wr_EX.valid && (io.wr_EX.dest === rk)) -> io.wr_EX.wdata,
+        (io.wr_MEM.valid && (io.wr_MEM.dest === rk)) -> io.wr_MEM.wdata,
+        (io.wr_WB.valid && (io.wr_WB.dest === rk)) -> io.wr_WB.wdata
     ))
     val rs3_rd  = MuxCase(io.reg_rdata3, Seq(
-        (io.wr_EX.valid.asBool && (io.wr_EX.dest === rd)) -> io.wr_EX.wdata,
-        (io.wr_MEM.valid.asBool && (io.wr_MEM.dest === rd)) -> io.wr_MEM.wdata,
-        (io.wr_WB.valid.asBool && (io.wr_WB.dest === rd)) -> io.wr_WB.wdata
+        (io.wr_EX.valid && (io.wr_EX.dest === rd)) -> io.wr_EX.wdata,
+        (io.wr_MEM.valid && (io.wr_MEM.dest === rd)) -> io.wr_MEM.wdata,
+        (io.wr_WB.valid && (io.wr_WB.dest === rd)) -> io.wr_WB.wdata
     ))
 
-    val ui5     = inst(14, 10)
-    val i12     = inst(21, 10)
-    val i16     = inst(25, 10)
-    val i20     = inst(24, 5)
-    val i26     = Cat(inst(9, 0), inst(25, 10))
-    val i12_sex = Cat(Fill(20, i12(11)), i12)
+    val ui5      = inst(14, 10)
+    val i12_sex  = Cat(Fill(20, inst(21)), inst(21, 10))
     val of16_sex = Cat(Fill(14, inst(25)), inst(25, 10), 0.U(2.W))
     val of26_sex = Cat(Fill(4, inst(9)), Cat(inst(9, 0), inst(25, 10)), 0.U(2.W))
     val i20_sex  = Cat(inst(24, 5), 0.U(12.W))
-    val ID_signals = ListLookup(inst, 
-        List(ALU_X, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_X),
+    val i12_uex  = Cat(0.U(20.W), inst(21, 10)) 
+
+    val ID_signals = ListLookup(inst, List(ALU_X, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_X),
         Array (
-            add_w   -> List(ALU_ADD, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            sub_w   -> List(ALU_SUB, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            slt     -> List(ALU_SLT, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            sltu    -> List(ALU_SLTU, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            nor     -> List(ALU_NOR, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            and     -> List(ALU_AND, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            or      -> List(ALU_OR, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            xor     -> List(ALU_XOR, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            slli_w  -> List(ALU_SLL, OP1_RS1, OP2_UI5, MEN_X, REN_S, WB_ALU),
-            srli_w  -> List(ALU_SRL, OP1_RS1, OP2_UI5, MEN_X, REN_S, WB_ALU),
-            srai_w  -> List(ALU_SRA, OP1_RS1, OP2_UI5, MEN_X, REN_S, WB_ALU),
-            addi_w  -> List(ALU_ADD, OP1_RS1, OP2_SI12, MEN_X, REN_S, WB_ALU),
-            ld_w    -> List(LD, OP1_RS1, OP2_SI12, MEN_X, REN_S, WB_MEM),
-            st_w    -> List(ST, OP1_RS1, OP2_SI12, MEN_S, REN_X, WB_X),
-            jirl    -> List(BR_JIRL, OP1_RS1, OP2_OF16_SEX, MEN_X, REN_S, WB_ALU),
-            inst_b  -> List(BR_B, OP1_PC, OP2_OF26_SEX, MEN_X, REN_X, WB_X),
-            inst_bl -> List(BR_BL, OP1_PC, OP2_OF26_SEX, MEN_X, REN_S, WB_ALU),
-            beq     -> List(BR_BEQ, OP1_PC, OP2_OF16_SEX, MEN_X, REN_X, WB_X),
-            bne     -> List(BR_BNE, OP1_PC, OP2_OF16_SEX, MEN_X, REN_X, WB_X),
-            lu12i_w -> List(ALU_LU12I, OP1_X, OP2_SI20_SEX, MEN_X, REN_S, WB_ALU)
+            add_w       -> List(ALU_ADD, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            sub_w       -> List(ALU_SUB, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            slt         -> List(ALU_SLT, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            sltu        -> List(ALU_SLTU, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            slti        -> List(ALU_SLT, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_S, WB_ALU),
+            sltui       -> List(ALU_SLTU, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_S, WB_ALU),
+            nor         -> List(ALU_NOR, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            and         -> List(ALU_AND, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            or          -> List(ALU_OR, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            xor         -> List(ALU_XOR, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            andi        -> List(ALU_AND, OP1_RS1, OP2_SI12_UEX, MEN_X, REN_S, WB_ALU),
+            ori         -> List(ALU_OR, OP1_RS1, OP2_SI12_UEX, MEN_X, REN_S, WB_ALU),
+            xori        -> List(ALU_XOR, OP1_RS1, OP2_SI12_UEX, MEN_X, REN_S, WB_ALU),
+            slli_w      -> List(ALU_SLL, OP1_RS1, OP2_UI5, MEN_X, REN_S, WB_ALU),
+            srli_w      -> List(ALU_SRL, OP1_RS1, OP2_UI5, MEN_X, REN_S, WB_ALU),
+            sra_w       -> List(ALU_SRA, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            sll_w       -> List(ALU_SLL, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            srl_w       -> List(ALU_SRL, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            srai_w      -> List(ALU_SRA, OP1_RS1, OP2_UI5, MEN_X, REN_S, WB_ALU),
+            addi_w      -> List(ALU_ADD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_S, WB_ALU),
+            ld_w        -> List(LD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_S, WB_MEM),
+            st_w        -> List(ST, OP1_RS1, OP2_SI12_SEX, MEN_S, REN_X, WB_X),
+            jirl        -> List(BR_JIRL, OP1_RS1, OP2_OF16_SEX, MEN_X, REN_S, WB_ALU),
+            inst_b      -> List(BR_B, OP1_PC, OP2_OF26_SEX, MEN_X, REN_X, WB_X),
+            inst_bl     -> List(BR_BL, OP1_PC, OP2_OF26_SEX, MEN_X, REN_S, WB_ALU),
+            beq         -> List(BR_BEQ, OP1_PC, OP2_OF16_SEX, MEN_X, REN_X, WB_X),
+            bne         -> List(BR_BNE, OP1_PC, OP2_OF16_SEX, MEN_X, REN_X, WB_X),
+            lu12i_w     -> List(ALU_LU12I, OP1_X, OP2_SI20_SEX, MEN_X, REN_S, WB_ALU),
+            pcaddu12i   -> List(ALU_ADD, OP1_PC, OP2_SI20_SEX, MEN_X, REN_S, WB_ALU),
+            mul_w       -> List(ALU_MULL, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            mulh_w      -> List(ALU_MULH, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            mulh_wu     -> List(ALU_MULHU, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            div_w       -> List(ALU_DIVS, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            div_wu      -> List(ALU_DIVU, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            mod_w       -> List(ALU_MODS, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            mod_wu      -> List(ALU_MODU, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU)
         )
     )
     val exe_fun :: op1_sel :: op2_sel :: mem_wen :: rf_wen :: wb_sel :: Nil = ID_signals
@@ -101,17 +114,16 @@ class ID_Stage extends Module {
     val op2_data = MuxCase(0.U(32.W), Seq(
         (op2_sel === OP2_RS2)  -> rs2_rd,
         (op2_sel === OP2_UI5)  -> ui5,
-        (op2_sel === OP2_SI12) -> i12_sex,
+        (op2_sel === OP2_SI12_SEX) -> i12_sex,
         (op2_sel === OP2_SI20_SEX) -> i20_sex,
         (op2_sel === OP2_RD)   -> rs3_rd,
-        (op2_sel === OP2_OF26) -> i26,
-        (op2_sel === OP2_OF16) -> i16,
         (op2_sel === OP2_OF26_SEX) -> of26_sex,
-        (op2_sel === OP2_OF16_SEX) -> of16_sex
+        (op2_sel === OP2_OF16_SEX) -> of16_sex,
+        (op2_sel === OP2_SI12_UEX) -> i12_uex
     ))
 
     //branch
-    io.br.flg := Mux(ds_valid === 0.U, false.B, MuxCase(false.B, Seq(
+    io.br.flg := Mux(!ds_valid, false.B, MuxCase(false.B, Seq(
         (exe_fun === BR_BL) -> true.B,
         (exe_fun === BR_B)  -> true.B,
         (exe_fun === BR_JIRL)  -> true.B,
@@ -125,7 +137,7 @@ class ID_Stage extends Module {
     io.to_exe.op2_data := op2_data
     io.to_exe.wb_sel := wb_sel
     io.to_exe.mem_wen := mem_wen
-    io.to_exe.rf_wen  := rf_wen
+    io.to_exe.rf_wen  := rf_wen.asBool
     io.to_exe.pc := pc
     io.to_exe.rs3_rd := rs3_rd
     io.to_exe.dest  := Mux(exe_fun === BR_BL, 1.U(LENx.W), rd)

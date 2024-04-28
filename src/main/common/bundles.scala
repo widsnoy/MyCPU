@@ -11,12 +11,12 @@ class REG_IO extends Bundle {
     val rdata1 = Output(UInt(LENX.W))
     val rdata2 = Output(UInt(LENX.W))
     val rdata3 = Output(UInt(LENX.W))
-    val wen = Input(UInt(1.W))
+    val wen = Input(Bool())
     val wr  = Input(UInt(LENx.W))
     val wdata = Input(UInt(LENX.W))
 }
 class RAM_IO extends Bundle {
-    val en    = Output(UInt(1.W))
+    val en    = Output(Bool())
     val wen   = Output(UInt(4.W))
     val addr  = Output(UInt(LENX.W))
     val wdata = Output(UInt(LENX.W))
@@ -29,7 +29,7 @@ class DEBUG extends Bundle {
     val wb_rf_wdata = Output(UInt(LENX.W))
 }
 class ID_INFO extends Bundle {
-    val valid = Output(UInt(1.W))
+    val valid = Output(Bool())
     val inst  = Output(UInt(LENX.W))
     val pc    = Output(UInt(LENX.W))
 }
@@ -38,40 +38,40 @@ class BR_INFO extends Bundle {
     val target= Output(UInt(LENX.W))
 }
 class EX_INFO extends Bundle {
-    val valid = Output(UInt(1.W))
+    val valid = Output(Bool())
     val exe_fun = Output(UInt(EXE_FUN_LEN.W))
     val op1_data = Output(UInt(LENX.W))
     val op2_data = Output(UInt(LENX.W))
-    val mem_wen = Output(UInt(MEN_LEN.W))
-    val rf_wen  = Output(UInt(REN_LEN.W))
+    val mem_wen = Output(Bool())
+    val rf_wen  = Output(Bool())
     val wb_sel = Output(UInt(WB_SEL_LEN.W))
     val pc = Output(UInt(LENX.W))
     val rs3_rd = Output(UInt(LENX.W))
     val dest  = Output(UInt(LENx.W))
 }
 class MEM_INFO extends Bundle {
-    val valid = Output(UInt(1.W))
+    val valid = Output(Bool())
     val exe_fun = Output(UInt(EXE_FUN_LEN.W))
-    val rf_wen  = Output(UInt(REN_LEN.W))
+    val rf_wen  = Output(Bool())
     val wb_sel = Output(UInt(WB_SEL_LEN.W))
-    val mem_wen = Output(UInt(MEN_LEN.W))
+    val mem_wen = Output(Bool())
     val rs3_rd = Output(UInt(LENX.W))
     val pc = Output(UInt(LENX.W))
     val alu_out = Output(UInt(LENX.W))
     val dest  = Output(UInt(LENx.W))
 }
 class WB_INFO extends Bundle {
-    val valid = Output(UInt(1.W))
+    val valid = Output(Bool())
     val exe_fun = Output(UInt(EXE_FUN_LEN.W))
-    val rf_wen  = Output(UInt(REN_LEN.W))
+    val rf_wen  = Output(Bool())
     val wb_sel = Output(UInt(WB_SEL_LEN.W))
     val pc = Output(UInt(LENX.W))
     val alu_out = Output(UInt(LENX.W))
     val dest  = Output(UInt(LENx.W))
 }
 class WRF_INFO extends Bundle {
-    val valid = Output(UInt(1.W))
-    val ready = Output(UInt(1.W))
+    val valid = Output(Bool())
+    val ready = Output(Bool())
     val dest  = Output(UInt(LENx.W))
     val wdata = Output(UInt(LENX.W))
 }

@@ -3,8 +3,10 @@ package common
 import chisel3._
 
 object Consts {
-    val LENX    = 32
-    val LENx    = 5
+    val LENX        = 32
+    val LENx        = 5
+    val HILO        = 64
+    val mulClockNum = 2
 
     val EXE_FUN_LEN = 5
     val ALU_X       =  0.U(EXE_FUN_LEN.W)
@@ -27,31 +29,35 @@ object Consts {
     val BR_BNE      =  17.U(EXE_FUN_LEN.W)
     val LD          =  18.U(EXE_FUN_LEN.W)
     val ST          =  19.U(EXE_FUN_LEN.W)
+    val ALU_MULH    =  20.U(EXE_FUN_LEN.W)
+    val ALU_MULL    =  21.U(EXE_FUN_LEN.W)
+    val ALU_MULHU   =  22.U(EXE_FUN_LEN.W)
+    val ALU_DIVS    =  23.U(EXE_FUN_LEN.W)
+    val ALU_DIVU    =  24.U(EXE_FUN_LEN.W)
+    val ALU_MODS    =  25.U(EXE_FUN_LEN.W)
+    val ALU_MODU    =  26.U(EXE_FUN_LEN.W)
 
-    val OP1_LEN = 2
+    val OP1_LEN = 3
     val OP1_RS1 = 0.U(OP1_LEN.W)
     val OP1_PC  = 1.U(OP1_LEN.W)
     val OP1_X   = 2.U(OP1_LEN.W)
 
-    val OP2_LEN = 4
-    val OP2_X   = 0.U(OP2_LEN.W)
-    val OP2_RS2 = 1.U(OP2_LEN.W)
-    val OP2_UI5 = 2.U(OP2_LEN.W)
-    val OP2_SI12 = 3.U(OP2_LEN.W)
-    val OP2_SI20_SEX = 4.U(OP2_LEN.W)
-    val OP2_OF16 = 5.U(OP2_LEN.W)
-    val OP2_OF26 = 6.U(OP2_LEN.W)
-    val OP2_RD   = 7.U(OP2_LEN.W)
-    val OP2_OF16_SEX    = 8.U(OP2_LEN.W)
-    val OP2_OF26_SEX    = 9.U(OP2_LEN.W)
+    val OP2_LEN         = 4
+    val OP2_X           = 0.U(OP2_LEN.W)
+    val OP2_RS2         = 1.U(OP2_LEN.W)
+    val OP2_UI5         = 2.U(OP2_LEN.W)
+    val OP2_RD          = 3.U(OP2_LEN.W)
+    val OP2_SI12_SEX    = 4.U(OP2_LEN.W)
+    val OP2_SI20_SEX    = 5.U(OP2_LEN.W)
+    val OP2_OF16_SEX    = 6.U(OP2_LEN.W)
+    val OP2_OF26_SEX    = 7.U(OP2_LEN.W)
+    val OP2_SI12_UEX    = 8.U(OP2_LEN.W)
 
-    val MEN_LEN = 1
-    val MEN_X   = 0.U(MEN_LEN.W)
-    val MEN_S   = 1.U(MEN_LEN.W)
+    val MEN_X   = false.B
+    val MEN_S   = true.B
 
-    val REN_LEN = 1
-    val REN_X   = 0.U(REN_LEN.W)
-    val REN_S   = 1.U(REN_LEN.W)
+    val REN_X   = false.B
+    val REN_S   = true.B
 
     val WB_SEL_LEN = 2
     val WB_X       = 0.U(WB_SEL_LEN.W)

@@ -16,19 +16,19 @@ class WB_Stage extends Module {
         val reg_wdata = Output(UInt(LENX.W))
         val wrf  = new WRF_INFO()
     })
-    val ws_ready_go    = 1.U(1.W)
-    val ws_valid       = RegInit(0.U(1.W))
-    val ws_allowin     = (~ws_valid) | (ws_ready_go)
-    when (ws_allowin === 1.U) {ws_valid := io.ms.valid}
+    val ws_ready_go    = true.B
+    val ws_valid       = RegInit(false.B)
+    val ws_allowin     = !ws_valid || ws_ready_go
+    when (ws_allowin) {ws_valid := io.ms.valid}
     io.ws_allowin     := ws_allowin
 
     val dest    = RegInit(0.U(LENx.W))
     val exe_fun = RegInit(0.U(EXE_FUN_LEN.W))
-    val rf_wen  = RegInit(0.U(REN_LEN.W))
+    val rf_wen  = RegInit(false.B)
     val wb_sel  = RegInit(0.U(WB_SEL_LEN.W))
     val pc      = RegInit(0.U(LENX.W))
     val alu_out = RegInit(0.U(LENX.W))
-    when ((ws_allowin & io.ms.valid).asUInt === 1.U) {
+    when (ws_allowin && io.ms.valid) {
         dest        := io.ms.dest
         exe_fun     := io.ms.exe_fun
         rf_wen      := io.ms.rf_wen
@@ -39,17 +39,17 @@ class WB_Stage extends Module {
     val wb_data = alu_out
     val wb_addr = dest
     
-    io.wrf.valid := rf_wen & ws_valid & (dest =/= 0.U(32.W)).asUInt
+    io.wrf.valid := rf_wen && ws_valid && (dest =/= 0.U(32.W))
     io.wrf.ready := 1.U
     io.wrf.dest  := dest
     io.wrf.wdata := alu_out
 
-    io.reg_wen := rf_wen & ws_valid & (dest =/= 0.U(32.W)).asUInt
+    io.reg_wen := rf_wen && ws_valid && (dest =/= 0.U(32.W))
     io.reg_wr := wb_addr
     io.reg_wdata := wb_data
 
     io.debug.wb_pc      := pc
-    io.debug.wb_rf_wen  := Fill(4, rf_wen & ws_valid & (dest =/= 0.U(32.W)).asUInt)
+    io.debug.wb_rf_wen  := Fill(4, (rf_wen && ws_valid && (dest =/= 0.U(32.W))).asUInt)
     io.debug.wb_rf_wnum := wb_addr
     io.debug.wb_rf_wdata:= wb_data
 }

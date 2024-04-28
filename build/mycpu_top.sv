@@ -37,4 +37,5 @@ widsnoy_cpu mycpu(
     .io_debug_wb_rf_wnum    (debug_wb_rf_wnum),
     .io_debug_wb_rf_wdata   (debug_wb_rf_wdata)
 );
+
 endmodule
