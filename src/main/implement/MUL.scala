@@ -24,13 +24,27 @@ class MUL extends Module {
         val result= Output(UInt(HILO.W))
         val ready = Output(Bool())
     })
-    val mul = Module(new SignedMul).io
-    mul.CLK := clock
-    mul.CE  := io.en
-    mul.A   := Mux(io.signed, Cat(io.op1(31), io.op1), Cat(0.U(1.W), io.op1))
-    mul.B   := Mux(io.signed, Cat(io.op2(31), io.op2), Cat(0.U(1.W), io.op2))
-    val cnt = RegInit(0.U(2.W))
-    cnt := Mux(io.en && !io.ready, cnt + 1.U, 0.U(2.W))
-    io.ready := cnt >= mulClockNum.U
-    io.result := mul.P(63, 0)
+    if (vivado_build) {
+        val mul = Module(new SignedMul).io
+        mul.CLK := clock
+        mul.CE  := io.en
+        mul.A   := Mux(io.signed, Cat(io.op1(31), io.op1), Cat(0.U(1.W), io.op1))
+        mul.B   := Mux(io.signed, Cat(io.op2(31), io.op2), Cat(0.U(1.W), io.op2))
+        val cnt = RegInit(0.U(2.W))
+        cnt := Mux(io.en && !io.ready, cnt + 1.U, 0.U(2.W))
+        io.ready := cnt >= mulClockNum.U
+        io.result := mul.P(63, 0)
+    } else {
+        val A   = Mux(io.signed, Cat(io.op1(31), io.op1), Cat(0.U(1.W), io.op1)).asSInt
+        val B   = Mux(io.signed, Cat(io.op2(31), io.op2), Cat(0.U(1.W), io.op2)).asSInt
+        val P   = A * B
+        val cnt = RegInit(0.U(2.W))
+        val result = RegInit(0.S((HILO + 2).W))
+        when (io.en) {
+            result := P
+        }
+        cnt := Mux(io.en && !io.ready, cnt + 1.U, 0.U(2.W))
+        io.ready := cnt >= mulClockNum.U
+        io.result := result(63, 0)
+    }
 }

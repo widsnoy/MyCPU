@@ -102,7 +102,17 @@ class ID_Stage extends Module {
             div_w       -> List(ALU_DIVS, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
             div_wu      -> List(ALU_DIVU, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
             mod_w       -> List(ALU_MODS, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            mod_wu      -> List(ALU_MODU, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU)
+            mod_wu      -> List(ALU_MODU, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            blt         -> List(BR_BLT, OP1_PC, OP2_OF16_SEX, MEN_X, REN_X, WB_X),
+            bge         -> List(BR_BGE, OP1_PC, OP2_OF16_SEX, MEN_X, REN_X, WB_X),
+            bltu        -> List(BR_BLTU, OP1_PC, OP2_OF16_SEX, MEN_X, REN_X, WB_X),
+            bgeu        -> List(BR_BGEU, OP1_PC, OP2_OF16_SEX, MEN_X, REN_X, WB_X),
+            ld_b        -> List(LD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_B, WB_MEM),
+            ld_h        -> List(LD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_H, WB_MEM),
+            st_b        -> List(ST, OP1_RS1, OP2_SI12_SEX, MEN_B, REN_X, WB_X),
+            st_h        -> List(ST, OP1_RS1, OP2_SI12_SEX, MEN_H, REN_X, WB_X),
+            ld_bu       -> List(LD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_BU, WB_MEM),
+            ld_hu       -> List(LD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_HU, WB_MEM)
         )
     )
     val exe_fun :: op1_sel :: op2_sel :: mem_wen :: rf_wen :: wb_sel :: Nil = ID_signals
@@ -128,7 +138,11 @@ class ID_Stage extends Module {
         (exe_fun === BR_B)  -> true.B,
         (exe_fun === BR_JIRL)  -> true.B,
         (exe_fun === BR_BNE)   -> (rs1_rd =/= rs3_rd),
-        (exe_fun === BR_BEQ)   -> (rs1_rd === rs3_rd)
+        (exe_fun === BR_BEQ)   -> (rs1_rd === rs3_rd),
+        (exe_fun === BR_BLT)   -> (rs1_rd.asSInt < rs3_rd.asSInt),
+        (exe_fun === BR_BLTU)  -> (rs1_rd.asUInt < rs3_rd.asUInt),
+        (exe_fun === BR_BGE)   -> (rs1_rd.asSInt >= rs3_rd.asSInt),
+        (exe_fun === BR_BGEU)  -> (rs1_rd.asUInt >= rs3_rd.asUInt)
     )))
     io.br.target := op1_data + op2_data
 
@@ -137,7 +151,7 @@ class ID_Stage extends Module {
     io.to_exe.op2_data := op2_data
     io.to_exe.wb_sel := wb_sel
     io.to_exe.mem_wen := mem_wen
-    io.to_exe.rf_wen  := rf_wen.asBool
+    io.to_exe.rf_wen  := rf_wen
     io.to_exe.pc := pc
     io.to_exe.rs3_rd := rs3_rd
     io.to_exe.dest  := Mux(exe_fun === BR_BL, 1.U(LENx.W), rd)

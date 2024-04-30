@@ -38,8 +38,8 @@ class EXE_Stage extends Module {
     val exe_fun     = RegInit(0.U(EXE_FUN_LEN.W))
     val op1_data    = RegInit(0.U(LENX.W))
     val op2_data    = RegInit(0.U(LENX.W))
-    val mem_wen     = RegInit(false.B)
-    val rf_wen      = RegInit(false.B)
+    val mem_wen     = RegInit(0.U(MEN_LEN.W))
+    val rf_wen      = RegInit(0.U(REN_LEN.W))
     val wb_sel      = RegInit(0.U(WB_SEL_LEN.W))
     val pc          = RegInit(0.U(LENX.W))
     val rs3_rd      = RegInit(0.U(LENX.W))
@@ -104,13 +104,26 @@ class EXE_Stage extends Module {
         (exe_fun === ALU_MODU)  -> rem
     ))
 
-    io.wrf.valid := rf_wen && es_valid && (dest =/= 0.U(32.W))
+    io.wrf.valid := rf_wen(3).asBool && es_valid && (dest =/= 0.U(32.W))
     io.wrf.ready := (exe_fun =/= LD)
     io.wrf.dest  := dest
     io.wrf.wdata := alu_out
+    
+    val rd_h        = Fill(2, rs3_rd(15, 0))
+    val rd_b        = Fill(4, rs3_rd(7, 0))
+    val addr_mod_4  = alu_out(1, 0)
+    val wen_H       = Mux(addr_mod_4 === 0.U, "b0011".U, "b1100".U)
+    val wen_B       = (1.U(32.W) << addr_mod_4)(3, 0)
 
-    io.data.wen  := Fill(4, (mem_wen && es_valid).asUInt) 
-    io.data.wdata:= rs3_rd
+    Fill(4, (mem_wen(2).asBool && es_valid).asUInt) 
+    io.data.wen  := Mux(!(mem_wen(2).asBool && es_valid), 0.U(4.W), MuxCase("b1111".U, Seq(
+        (mem_wen === MEN_H) -> wen_H,
+        (mem_wen === MEN_B) -> wen_B
+    )))
+    io.data.wdata:= MuxCase(rs3_rd, Seq(
+        (mem_wen === MEN_H) -> rd_h,
+        (mem_wen === MEN_B) -> rd_b
+    ))
     io.data.addr := alu_out
     io.data.en   := true.B
 

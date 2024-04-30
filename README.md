@@ -31,4 +31,9 @@ val of16_sex = Cat(Fill(14, inst(25)), inst(25, 10), 0.U(2.W)) // IF Stage
 ## 4 月 28 日
 1. 感谢学长指出我代码的问题，优化了 ALU, 提前计算答案避免综合出多个 ALU。  
 2. 将一字节变量的位运算改为 Bool 的逻辑运算，增强代码可读性。   
-3. 参考 pua_mips 用 ip 核实现乘除法完成了 lab10。  
+3. 参考 pua_mips 用 ip 核实现乘除法完成了 lab10。
+
+## 4 月 30 日
+昨天对着 confreg.v 改了下模拟器 confreg，终于可以用了。  
+发现之前的代码判断 to_fs_valid 为 1 的时机是有问题的，应该是 reset 置 0 的下一拍，否则 inst_sram 才能读出数据，将 to_fs_valid 设为 reg 就可以解决。  
+完成了 lab11, 比较坑的一点是 ld.b, st.b 之类地址可以是非对齐的，最开始没理解调试了很久。
