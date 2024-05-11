@@ -24,14 +24,19 @@ class EXE_Stage extends Module {
         val to_mem     = new MEM_INFO
         val data = new RAM_IO()
         val wrf  = new WRF_INFO()
+
+        val rsc  = Flipped(new OP_CSR_INFO())
+        val csr  = new OP_CSR_INFO()
+        val es_flush = Output(Bool())
+        val ms_flush = Input(Bool())
     })
     val div = Module(new DIV()).io
     val mul = Module(new MUL()).io
     val es_ready_go    = (!div.en || div.ready) && (!mul.en || mul.ready)
     val es_valid       = RegInit(false.B)
     val es_allowin     = !es_valid || (io.ms_allowin && es_ready_go)
-    when (es_allowin) {es_valid := io.ds.valid}
-    io.to_mem.valid   := es_valid && es_ready_go
+    when (es_allowin || io.ms_flush) {es_valid := io.ds.valid && !io.ms_flush}
+    io.to_mem.valid   := es_valid && es_ready_go && !io.ms_flush
     io.es_allowin     := es_allowin
     
     val dest        = RegInit(0.U(LENx.W))
@@ -43,6 +48,18 @@ class EXE_Stage extends Module {
     val wb_sel      = RegInit(0.U(WB_SEL_LEN.W))
     val pc          = RegInit(0.U(LENX.W))
     val rs3_rd      = RegInit(0.U(LENX.W))
+
+    val csr_excp        = RegInit(0.U(2.W))
+    val csr_Ecode       = RegInit(0.U(6.W))
+    val csr_Esubcode    = RegInit(0.U(9.W))
+    val csr_pc          = RegInit(0.U(LENX.W))
+    val csr_usemask     = RegInit(false.B)
+    val csr_wen         = RegInit(false.B)
+    val csr_waddr       = RegInit(0.U(CSR_LENx.W))
+    val csr_wdata       = RegInit(0.U(LENX.W))
+    val csr_mask        = RegInit(0.U(LENX.W))
+    val csr_raddr       = RegInit(0.U(CSR_LENx.W))
+
     when (es_allowin && io.ds.valid) {
         dest        := io.ds.dest
         exe_fun     := io.ds.exe_fun
@@ -53,7 +70,20 @@ class EXE_Stage extends Module {
         wb_sel      := io.ds.wb_sel
         pc          := io.ds.pc
         rs3_rd      := io.ds.rs3_rd
+        csr_excp        := io.rsc.excp
+        csr_Ecode       := io.rsc.Ecode
+        csr_Esubcode    := io.rsc.Esubcode
+        csr_usemask     := io.rsc.usemask
+        csr_wen         := io.rsc.wen
+        csr_waddr       := io.rsc.waddr
+        csr_wdata       := io.rsc.wdata
+        csr_mask        := io.rsc.mask
+        csr_raddr       := io.rsc.raddr
+        csr_pc          := io.rsc.pc
     }
+
+    io.es_flush := io.ms_flush || (es_valid && csr_excp =/= 0.U)
+
     div.en      := ((exe_fun === ALU_MODS) || (exe_fun === ALU_MODU) || (exe_fun === ALU_DIVU) || (exe_fun === ALU_DIVS))
     div.signed  := ((exe_fun === ALU_MODS) || (exe_fun === ALU_DIVS))
     div.op1     := op1_data
@@ -92,7 +122,6 @@ class EXE_Stage extends Module {
         (exe_fun === ALU_SLL)   -> sll,
         (exe_fun === ALU_SRL)   -> srl,
         (exe_fun === ALU_SRA)   -> sra,
-        (exe_fun === ALU_LU12I) -> op2_data,
         (exe_fun === BR_JIRL)   -> br_t,
         (exe_fun === BR_BL)     -> br_t,
         (exe_fun === ALU_MULL)  -> mul_result(31, 0),
@@ -104,8 +133,8 @@ class EXE_Stage extends Module {
         (exe_fun === ALU_MODU)  -> rem
     ))
 
-    io.wrf.valid := rf_wen(3).asBool && es_valid && (dest =/= 0.U(32.W))
-    io.wrf.ready := (exe_fun =/= LD)
+    io.wrf.valid := wb_sel(0).asBool && es_valid && (dest =/= 0.U(32.W)) && !io.ms_flush
+    io.wrf.ready := exe_fun =/= LD && !wb_sel(2).asBool
     io.wrf.dest  := dest
     io.wrf.wdata := alu_out
     
@@ -116,7 +145,7 @@ class EXE_Stage extends Module {
     val wen_B       = (1.U(32.W) << addr_mod_4)(3, 0)
 
     Fill(4, (mem_wen(2).asBool && es_valid).asUInt) 
-    io.data.wen  := Mux(!(mem_wen(2).asBool && es_valid), 0.U(4.W), MuxCase("b1111".U, Seq(
+    io.data.wen  := Mux(!(mem_wen(2).asBool && es_valid) || (csr_excp =/= 0.U) || io.ms_flush, 0.U(4.W), MuxCase("b1111".U, Seq(
         (mem_wen === MEN_H) -> wen_H,
         (mem_wen === MEN_B) -> wen_B
     )))
@@ -135,4 +164,15 @@ class EXE_Stage extends Module {
     io.to_mem.pc        := pc
     io.to_mem.alu_out   := alu_out
     io.to_mem.dest      := dest
+
+    io.csr.excp   := csr_excp
+    io.csr.Ecode  := csr_Ecode
+    io.csr.Esubcode := csr_Esubcode
+    io.csr.pc     := csr_pc
+    io.csr.usemask:= csr_usemask  
+    io.csr.wen    := csr_wen
+    io.csr.waddr  := csr_waddr 
+    io.csr.wdata  := csr_wdata 
+    io.csr.mask   := csr_mask 
+    io.csr.raddr  := csr_raddr
 }

@@ -11,9 +11,22 @@ class REG_IO extends Bundle {
     val rdata1 = Output(UInt(LENX.W))
     val rdata2 = Output(UInt(LENX.W))
     val rdata3 = Output(UInt(LENX.W))
-    val wen = Input(Bool())
-    val wr  = Input(UInt(LENx.W))
-    val wdata = Input(UInt(LENX.W))
+    val wen    = Input(Bool())
+    val wr     = Input(UInt(LENx.W))
+    val wdata  = Input(UInt(LENX.W))
+}
+class CSR_IO extends Bundle {    
+    val excp     = Output(UInt(2.W))
+    val Ecode    = Output(UInt(6.W))
+    val Esubcode = Output(UInt(9.W))
+    val pc       = Output(UInt(LENX.W))
+    val usemask  = Output(Bool()) // 0 直接覆盖，1 考虑掩码
+    val wen      = Output(Bool())
+    val waddr    = Output(UInt(CSR_LENx.W))
+    val wdata    = Output(UInt(LENX.W))
+    val mask     = Output(UInt(LENX.W))
+    val raddr    = Output(UInt(CSR_LENx.W))
+    val rdata    = Input(UInt(LENX.W))
 }
 class RAM_IO extends Bundle {
     val en    = Output(Bool())
@@ -74,4 +87,16 @@ class WRF_INFO extends Bundle {
     val ready = Output(Bool())
     val dest  = Output(UInt(LENx.W))
     val wdata = Output(UInt(LENX.W))
+}
+class OP_CSR_INFO extends Bundle {
+    val excp     = Output(UInt(2.W)) // 0 -> do nothing, 1 -> excp, 2 -> ertn
+    val Ecode    = Output(UInt(6.W))
+    val Esubcode = Output(UInt(9.W))
+    val usemask  = Output(Bool()) // 0 直接覆盖，1 考虑掩码
+    val pc       = Output(UInt(LENX.W))
+    val wen      = Output(Bool())
+    val waddr    = Output(UInt(CSR_LENx.W))
+    val wdata    = Output(UInt(LENX.W))
+    val mask     = Output(UInt(LENX.W))
+    val raddr    = Output(UInt(CSR_LENx.W))
 }

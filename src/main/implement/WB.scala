@@ -15,6 +15,9 @@ class WB_Stage extends Module {
         val reg_wr  = Output(UInt(LENx.W))
         val reg_wdata = Output(UInt(LENX.W))
         val wrf  = new WRF_INFO()
+        val rsc  = Flipped(new OP_CSR_INFO())
+        val csr  = new CSR_IO()
+        val wb_flush = Output(Bool())
     })
     val ws_ready_go    = true.B
     val ws_valid       = RegInit(false.B)
@@ -28,6 +31,18 @@ class WB_Stage extends Module {
     val wb_sel  = RegInit(0.U(WB_SEL_LEN.W))
     val pc      = RegInit(0.U(LENX.W))
     val alu_out = RegInit(0.U(LENX.W))
+
+    val csr_excp        = RegInit(0.U(2.W))
+    val csr_Ecode       = RegInit(0.U(6.W))
+    val csr_Esubcode    = RegInit(0.U(9.W))
+    val csr_pc          = RegInit(0.U(LENX.W))
+    val csr_usemask     = RegInit(false.B)
+    val csr_wen         = RegInit(false.B)
+    val csr_waddr       = RegInit(0.U(CSR_LENx.W))
+    val csr_wdata       = RegInit(0.U(LENX.W))
+    val csr_mask        = RegInit(0.U(LENX.W))
+    val csr_raddr       = RegInit(0.U(CSR_LENx.W))
+
     when (ws_allowin && io.ms.valid) {
         dest        := io.ms.dest
         exe_fun     := io.ms.exe_fun
@@ -35,7 +50,31 @@ class WB_Stage extends Module {
         wb_sel      := io.ms.wb_sel
         pc          := io.ms.pc
         alu_out     := io.ms.alu_out
+        csr_excp        := io.rsc.excp
+        csr_Ecode       := io.rsc.Ecode
+        csr_Esubcode    := io.rsc.Esubcode
+        csr_usemask     := io.rsc.usemask
+        csr_wen         := io.rsc.wen
+        csr_waddr       := io.rsc.waddr
+        csr_wdata       := io.rsc.wdata
+        csr_mask        := io.rsc.mask
+        csr_raddr       := io.rsc.raddr
+        csr_pc          := io.rsc.pc
     }
+
+    io.wb_flush := ws_valid && csr_excp =/= 0.U
+    // CSR
+    io.csr.excp   := csr_excp & Fill(2, ws_valid.asUInt)
+    io.csr.Ecode  := csr_Ecode
+    io.csr.Esubcode := csr_Esubcode
+    io.csr.pc     := csr_pc
+    io.csr.usemask:= csr_usemask  
+    io.csr.wen    := csr_wen && ws_valid
+    io.csr.waddr  := csr_waddr 
+    io.csr.wdata  := csr_wdata 
+    io.csr.mask   := csr_mask 
+    io.csr.raddr  := csr_raddr 
+
     // 这里可以少做一次多路选择
     val alu_UH = Cat(0.U(16.W), alu_out(15, 0))
     val alu_UB = Cat(0.U(24.W), alu_out(7, 0))
@@ -43,24 +82,26 @@ class WB_Stage extends Module {
     val alu_SB = Cat(Fill(24, alu_out(7)), alu_out(7, 0))
     
     val wb_data = MuxCase(alu_out, Seq(
+        (wb_sel === WB_BOTH) -> io.csr.rdata,
+        (wb_sel === WB_CSR)  -> io.csr.rdata,
         (rf_wen === REN_H) -> alu_SH,
         (rf_wen === REN_B) -> alu_SB,
         (rf_wen === REN_HU)-> alu_UH,
-        (rf_wen === REN_BU)-> alu_UB
+        (rf_wen === REN_BU)-> alu_UB,
     ))
     val wb_addr = dest
 
-    io.wrf.valid := rf_wen(3).asBool && ws_valid && (dest =/= 0.U(32.W))
+    io.wrf.valid := wb_sel(0).asBool && ws_valid && (dest =/= 0.U(32.W)) && (csr_excp === 0.U)
     io.wrf.ready := 1.U
     io.wrf.dest  := dest
     io.wrf.wdata := wb_data
 
-    io.reg_wen := rf_wen(3).asBool && ws_valid && (dest =/= 0.U(32.W))
+    io.reg_wen := wb_sel(0).asBool && ws_valid && (dest =/= 0.U(32.W)) && (csr_excp === 0.U)
     io.reg_wr := wb_addr
     io.reg_wdata := wb_data
 
     io.debug.wb_pc      := pc
-    io.debug.wb_rf_wen  := Fill(4, (rf_wen(3).asBool && ws_valid && (dest =/= 0.U(32.W))).asUInt)
+    io.debug.wb_rf_wen  := Fill(4, (wb_sel(0).asBool && ws_valid && (dest =/= 0.U(32.W)) && (csr_excp === 0.U)).asUInt)
     io.debug.wb_rf_wnum := wb_addr
     io.debug.wb_rf_wdata:= wb_data
 }

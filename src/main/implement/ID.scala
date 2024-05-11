@@ -22,12 +22,16 @@ class ID_Stage extends Module {
         val wr_EX      = Flipped(new WRF_INFO())
         val wr_MEM     = Flipped(new WRF_INFO())
         val wr_WB      = Flipped(new WRF_INFO())
+
+        val csr        = new OP_CSR_INFO()
+        val ds_flush = Output(Bool())
+        val es_flush = Input(Bool())
     })
-    val ds_ready_go    = Mux(io.wr_EX.valid, io.wr_EX.ready, true.B)
+    val ds_ready_go    = (!io.wr_EX.valid || io.wr_EX.ready) && (!io.wr_MEM.valid || io.wr_MEM.ready) && (!io.wr_WB.valid || io.wr_WB.ready)
     val ds_valid       = RegInit(false.B)
     val ds_allowin     = !ds_valid || (io.es_allowin && ds_ready_go)
-    when (ds_allowin) {ds_valid := io.fs.valid}
-    io.to_exe.valid   := ds_valid && ds_ready_go
+    when (ds_allowin || io.es_flush) {ds_valid := io.fs.valid && !io.es_flush}
+    io.to_exe.valid   := ds_valid && ds_ready_go && !io.es_flush
     io.ds_allowin     := ds_allowin
     val inst = RegInit(0.U(LENX.W))
     val pc   = RegInit(0.U(LENX.W))
@@ -42,21 +46,17 @@ class ID_Stage extends Module {
     io.reg_r2   := rk
     io.reg_r3   := rd
     
-    val rs1_rd  = MuxCase(io.reg_rdata1, Seq(
-        (io.wr_EX.valid && (io.wr_EX.dest === rj)) -> io.wr_EX.wdata,
-        (io.wr_MEM.valid && (io.wr_MEM.dest === rj)) -> io.wr_MEM.wdata,
-        (io.wr_WB.valid && (io.wr_WB.dest === rj)) -> io.wr_WB.wdata
-    ))
-    val rs2_rd  = MuxCase(io.reg_rdata2, Seq(
-        (io.wr_EX.valid && (io.wr_EX.dest === rk)) -> io.wr_EX.wdata,
-        (io.wr_MEM.valid && (io.wr_MEM.dest === rk)) -> io.wr_MEM.wdata,
-        (io.wr_WB.valid && (io.wr_WB.dest === rk)) -> io.wr_WB.wdata
-    ))
-    val rs3_rd  = MuxCase(io.reg_rdata3, Seq(
-        (io.wr_EX.valid && (io.wr_EX.dest === rd)) -> io.wr_EX.wdata,
-        (io.wr_MEM.valid && (io.wr_MEM.dest === rd)) -> io.wr_MEM.wdata,
-        (io.wr_WB.valid && (io.wr_WB.dest === rd)) -> io.wr_WB.wdata
-    ))
+    def get_reg(dest: UInt, ini: UInt): UInt = {
+        return MuxCase(ini, Seq(
+            (io.wr_EX.valid && (io.wr_EX.dest === dest)) -> io.wr_EX.wdata,
+            (io.wr_MEM.valid && (io.wr_MEM.dest === dest)) -> io.wr_MEM.wdata,
+            (io.wr_WB.valid && (io.wr_WB.dest === dest)) -> io.wr_WB.wdata
+        ))
+    }
+
+    val rs1_rd  = get_reg(rj, io.reg_rdata1)
+    val rs2_rd  = get_reg(rk, io.reg_rdata2)
+    val rs3_rd  = get_reg(rd, io.reg_rdata3)
 
     val ui5      = inst(14, 10)
     val i12_sex  = Cat(Fill(20, inst(21)), inst(21, 10))
@@ -64,6 +64,7 @@ class ID_Stage extends Module {
     val of26_sex = Cat(Fill(4, inst(9)), Cat(inst(9, 0), inst(25, 10)), 0.U(2.W))
     val i20_sex  = Cat(inst(24, 5), 0.U(12.W))
     val i12_uex  = Cat(0.U(20.W), inst(21, 10)) 
+    val csr_num  = inst(23, 10)
 
     val ID_signals = ListLookup(inst, List(ALU_X, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_X),
         Array (
@@ -112,7 +113,12 @@ class ID_Stage extends Module {
             st_b        -> List(ST, OP1_RS1, OP2_SI12_SEX, MEN_B, REN_X, WB_X),
             st_h        -> List(ST, OP1_RS1, OP2_SI12_SEX, MEN_H, REN_X, WB_X),
             ld_bu       -> List(LD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_BU, WB_MEM),
-            ld_hu       -> List(LD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_HU, WB_MEM)
+            ld_hu       -> List(LD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_HU, WB_MEM),
+            csrrd       -> List(CSRRD, OP1_X, OP2_X, MEN_X, REN_S, WB_CSR),
+            csrwr       -> List(CSRWR, OP1_X, OP2_X, MEN_X, REN_S, WB_BOTH),
+            csrxchg     -> List(CSRXCHG, OP1_X, OP2_X, MEN_X, REN_S, WB_BOTH),
+            syscall     -> List(SYSCALL, OP1_X, OP2_X, MEN_X, REN_X, WB_X),
+            ertn        -> List(ERTN, OP1_X, OP2_X, MEN_X, REN_X, WB_X)
         )
     )
     val exe_fun :: op1_sel :: op2_sel :: mem_wen :: rf_wen :: wb_sel :: Nil = ID_signals
@@ -129,11 +135,12 @@ class ID_Stage extends Module {
         (op2_sel === OP2_RD)   -> rs3_rd,
         (op2_sel === OP2_OF26_SEX) -> of26_sex,
         (op2_sel === OP2_OF16_SEX) -> of16_sex,
-        (op2_sel === OP2_SI12_UEX) -> i12_uex
+        (op2_sel === OP2_SI12_UEX) -> i12_uex,
+        (op2_sel === OP2_CSR_NUM)  -> csr_num
     ))
 
     //branch
-    io.br.flg := Mux(!ds_valid, false.B, MuxCase(false.B, Seq(
+    io.br.flg := ds_valid && MuxCase(false.B, Seq(
         (exe_fun === BR_BL) -> true.B,
         (exe_fun === BR_B)  -> true.B,
         (exe_fun === BR_JIRL)  -> true.B,
@@ -143,8 +150,27 @@ class ID_Stage extends Module {
         (exe_fun === BR_BLTU)  -> (rs1_rd.asUInt < rs3_rd.asUInt),
         (exe_fun === BR_BGE)   -> (rs1_rd.asSInt >= rs3_rd.asSInt),
         (exe_fun === BR_BGEU)  -> (rs1_rd.asUInt >= rs3_rd.asUInt)
-    )))
+    ))
     io.br.target := op1_data + op2_data
+    io.csr.excp := MuxCase(0.U(2.W), Seq(
+        (exe_fun === SYSCALL) -> 1.U(2.W),
+        (exe_fun === ERTN)    -> 2.U(2.W)
+    ))
+    io.csr.Ecode := MuxCase(0.U(6.W), Seq(
+        (exe_fun === SYSCALL) -> "hb".U(6.W)
+    ))
+    io.csr.Esubcode := MuxCase(0.U(9.W), Seq(
+        (exe_fun === SYSCALL) -> 0.U(9.W)
+    ))
+    io.csr.pc     := pc
+    io.csr.usemask:= (exe_fun === CSRXCHG)
+    io.csr.wen    := (wb_sel === WB_BOTH)
+    io.csr.waddr  := csr_num
+    io.csr.wdata  := rs3_rd
+    io.csr.mask   := rs1_rd
+    io.csr.raddr  := csr_num
+
+    io.ds_flush   := io.es_flush || (ds_valid && io.csr.excp =/= 0.U)
 
     io.to_exe.exe_fun := exe_fun
     io.to_exe.op1_data := op1_data

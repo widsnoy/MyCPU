@@ -11,7 +11,7 @@ object Consts {
     val mulClockNum = 2
     val divClockNum = 8
 
-    val EXE_FUN_LEN = 5
+    val EXE_FUN_LEN = 6
     val ALU_X       =  0.U(EXE_FUN_LEN.W)
     val ALU_ADD     =  1.U(EXE_FUN_LEN.W)
     val ALU_SUB     =  2.U(EXE_FUN_LEN.W)
@@ -43,6 +43,11 @@ object Consts {
     val BR_BLTU     =  28.U(EXE_FUN_LEN.W)
     val BR_BGE      =  29.U(EXE_FUN_LEN.W)
     val BR_BGEU     =  30.U(EXE_FUN_LEN.W)
+    val CSRRD       =  31.U(EXE_FUN_LEN.W)
+    val CSRWR       =  32.U(EXE_FUN_LEN.W)
+    val CSRXCHG     =  33.U(EXE_FUN_LEN.W)
+    val ERTN        =  34.U(EXE_FUN_LEN.W)
+    val SYSCALL     =  35.U(EXE_FUN_LEN.W)
 
     val OP1_LEN = 3
     val OP1_RS1 = 0.U(OP1_LEN.W)
@@ -59,6 +64,7 @@ object Consts {
     val OP2_OF16_SEX    = 6.U(OP2_LEN.W)
     val OP2_OF26_SEX    = 7.U(OP2_LEN.W)
     val OP2_SI12_UEX    = 8.U(OP2_LEN.W)
+    val OP2_CSR_NUM     = 9.U(OP2_LEN.W)
 
     val MEN_LEN = 3
     val MEN_X   = "b000".U
@@ -66,17 +72,42 @@ object Consts {
     val MEN_H   = "b110".U
     val MEN_B   = "b111".U
 
-    val REN_LEN = 4
-    val REN_X   = "b0000".U
-    val REN_S   = "b1000".U
-    val REN_H   = "b1100".U
-    val REN_B   = "b1110".U
-    val REN_HU  = "b1101".U
-    val REN_BU  = "b1111".U
+    val REN_LEN = 3
+    val REN_X   = "b000".U
+    val REN_S   = "b000".U
+    val REN_H   = "b100".U
+    val REN_B   = "b110".U
+    val REN_HU  = "b101".U
+    val REN_BU  = "b111".U
 
     val WB_SEL_LEN = 3
-    val WB_X       = 0.U(WB_SEL_LEN.W)
-    val WB_ALU     = 1.U(WB_SEL_LEN.W)
-    val WB_MEM     = 2.U(WB_SEL_LEN.W)
-    val WB_PC      = 3.U(WB_SEL_LEN.W)
+    val WB_X       = "b000".U(WB_SEL_LEN.W)
+    val WB_MEM     = "b001".U(WB_SEL_LEN.W)
+    val WB_CSR     = "b101".U(WB_SEL_LEN.W)
+    val WB_BOTH    = "b111".U(WB_SEL_LEN.W)
+    val WB_ALU     = "b011".U(WB_SEL_LEN.W)
+
+    val CSR_LENx     = 14
+    val CSR_SIZE     = 9
+    val CSR_SIZE_LOG = 4
+    val CSR_BADVADDR = 15
+
+    val CRMD    = 0.U
+    val CRMD_x  = "h0".U
+    val PRMD    = 1.U
+    val PRMD_x  = "h1".U
+    val ESTAT   = 2.U
+    val ESTAT_x = "h5".U
+    val ERA     = 3.U
+    val ERA_x   = "h6".U
+    val EENTRY  = 4.U
+    val EENTRY_x= "hc".U
+    val SAVE0   = 5.U
+    val SAVE0_x = "h30".U
+    val SAVE1   = 6.U
+    val SAVE1_x = "h31".U
+    val SAVE2   = 7.U
+    val SAVE2_x = "h32".U
+    val SAVE3   = 8.U
+    val SAVE3_x = "h33".U
 }

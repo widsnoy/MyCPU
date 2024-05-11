@@ -9,45 +9,61 @@ class widsnoy_cpu extends Module {
         val data = new RAM_IO()
         val debug = new DEBUG()
     })
-    // val core = Module(new Core())
-    // val regfile = Module(new Regfile())
-    // core.io.reg <> regfile.io.reg
-    // core.io.inst <> io.inst
-    // core.io.data <> io.data
-    // core.io.debug <> io.debug
-    val IF = Module(new IF_Stage())
-    val ID = Module(new ID_Stage())
-    val EX = Module(new EXE_Stage())
-    val MEM = Module(new MEM_Stage())
-    val WB = Module(new WB_Stage())
-    val regfile = Module(new Regfile())
-    IF.io.inst <> io.inst
-    IF.io.to_ds <> ID.io.fs
-    IF.io.br <> ID.io.br
-    IF.io.ds_allowin <> ID.io.ds_allowin
+    val IF  = Module(new IF_Stage()).io
+    val ID  = Module(new ID_Stage()).io
+    val EX  = Module(new EXE_Stage()).io
+    val MEM = Module(new MEM_Stage()).io
+    val WB  = Module(new WB_Stage()).io
+    val reg = Module(new Regfile()).io
+    val csr = Module(new CSR()).io
+    IF.inst <> io.inst
+    IF.to_ds <> ID.fs
+    IF.br <> ID.br
+    IF.ds_allowin <> ID.ds_allowin
+    IF.ds_flush   <> ID.ds_flush
+    IF.flush_pc   <> csr.flush_pc
+    IF.next_pc    <> csr.next_pc
 
-    ID.io.es_allowin <> EX.io.es_allowin
-    ID.io.to_exe <> EX.io.ds
-    ID.io.reg_r1 <> regfile.io.reg.r1
-    ID.io.reg_r2 <> regfile.io.reg.r2
-    ID.io.reg_r3 <> regfile.io.reg.r3
-    ID.io.reg_rdata1 <> regfile.io.reg.rdata1
-    ID.io.reg_rdata2 <> regfile.io.reg.rdata2
-    ID.io.reg_rdata3 <> regfile.io.reg.rdata3
-    ID.io.wr_EX     <> EX.io.wrf
-    ID.io.wr_MEM    <> MEM.io.wrf
-    ID.io.wr_WB     <> WB.io.wrf
+    ID.es_allowin <> EX.es_allowin
+    ID.to_exe <> EX.ds
+    ID.reg_r1 <> reg.reg.r1
+    ID.reg_r2 <> reg.reg.r2
+    ID.reg_r3 <> reg.reg.r3
+    ID.reg_rdata1 <> reg.reg.rdata1
+    ID.reg_rdata2 <> reg.reg.rdata2
+    ID.reg_rdata3 <> reg.reg.rdata3
+    ID.wr_EX     <> EX.wrf
+    ID.wr_MEM    <> MEM.wrf
+    ID.wr_WB     <> WB.wrf
+    ID.csr       <> EX.rsc
+    ID.es_flush  <> EX.es_flush
 
-    EX.io.ms_allowin <> MEM.io.ms_allowin
-    EX.io.to_mem     <> MEM.io.es
-    EX.io.data       <> io.data
+    EX.ms_allowin <> MEM.ms_allowin
+    EX.to_mem     <> MEM.es
+    EX.data       <> io.data
+    EX.csr       <> MEM.rsc
+    EX.ms_flush  <> MEM.ms_flush
 
-    MEM.io.ws_allowin <> WB.io.ws_allowin
-    MEM.io.to_wb      <> WB.io.ms
-    MEM.io.data_rdata  <> io.data.rdata
+    MEM.ws_allowin <> WB.ws_allowin
+    MEM.to_wb      <> WB.ms
+    MEM.data_rdata <> io.data.rdata
+    MEM.csr       <> WB.rsc
+    MEM.wb_flush  <> WB.wb_flush
 
-    WB.io.debug       <> io.debug
-    WB.io.reg_wen     <> regfile.io.reg.wen
-    WB.io.reg_wr      <> regfile.io.reg.wr
-    WB.io.reg_wdata   <> regfile.io.reg.wdata
+    WB.debug       <> io.debug
+    WB.reg_wen     <> reg.reg.wen
+    WB.reg_wr      <> reg.reg.wr
+    WB.reg_wdata   <> reg.reg.wdata
+    
+    WB.csr.excp     <> csr.csr.excp
+    WB.csr.Ecode    <> csr.csr.Ecode
+    WB.csr.Esubcode <> csr.csr.Esubcode
+    WB.csr.pc       <> csr.csr.pc
+    WB.csr.usemask  <> csr.csr.usemask
+    WB.csr.wen      <> csr.csr.wen
+    WB.csr.waddr    <> csr.csr.waddr
+    WB.csr.wdata    <> csr.csr.wdata
+    WB.csr.mask     <> csr.csr.mask
+    WB.csr.raddr    <> csr.csr.raddr
+    WB.csr.rdata    <> csr.csr.rdata
 }
