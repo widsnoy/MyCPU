@@ -157,14 +157,14 @@ class ID_Stage extends Module {
         (exe_fun === ERTN)    -> 2.U(2.W)
     ))
     io.csr.Ecode := MuxCase(0.U(6.W), Seq(
-        (exe_fun === SYSCALL) -> "hb".U(6.W)
+        (exe_fun === SYSCALL) -> ECodes.SYS
     ))
     io.csr.Esubcode := MuxCase(0.U(9.W), Seq(
         (exe_fun === SYSCALL) -> 0.U(9.W)
     ))
     io.csr.pc     := pc
     io.csr.usemask:= (exe_fun === CSRXCHG)
-    io.csr.wen    := (wb_sel === WB_BOTH)
+    io.csr.wen    := (wb_sel === WB_BOTH) && (io.csr.excp === 0.U)
     io.csr.waddr  := csr_num
     io.csr.wdata  := rs3_rd
     io.csr.mask   := rs1_rd

@@ -3,6 +3,7 @@ package mycpu
 import chisel3._
 import chisel3.util._
 import common._
+import csr._
 class widsnoy_cpu extends Module {
     val io = IO(new Bundle {
         val inst = new RAM_IO()

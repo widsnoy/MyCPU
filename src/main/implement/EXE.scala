@@ -144,7 +144,6 @@ class EXE_Stage extends Module {
     val wen_H       = Mux(addr_mod_4 === 0.U, "b0011".U, "b1100".U)
     val wen_B       = (1.U(32.W) << addr_mod_4)(3, 0)
 
-    Fill(4, (mem_wen(2).asBool && es_valid).asUInt) 
     io.data.wen  := Mux(!(mem_wen(2).asBool && es_valid) || (csr_excp =/= 0.U) || io.ms_flush, 0.U(4.W), MuxCase("b1111".U, Seq(
         (mem_wen === MEN_H) -> wen_H,
         (mem_wen === MEN_B) -> wen_B

@@ -10,6 +10,8 @@ object Consts {
     val HILO        = 64
     val mulClockNum = 2
     val divClockNum = 8
+    val COUNT_N     = 25
+    val CSR_LENx    = 14
 
     val EXE_FUN_LEN = 6
     val ALU_X       =  0.U(EXE_FUN_LEN.W)
@@ -86,28 +88,73 @@ object Consts {
     val WB_CSR     = "b101".U(WB_SEL_LEN.W)
     val WB_BOTH    = "b111".U(WB_SEL_LEN.W)
     val WB_ALU     = "b011".U(WB_SEL_LEN.W)
+}
+object CSR {
+    val CRMD        = 0x0.U(14.W)
+    val PRMD        = 0x1.U(14.W)
+    val EUEN        = 0x2.U(14.W)
+    val ECFG        = 0x4.U(14.W)
+    val ESTAT       = 0x5.U(14.W)
+    val ERA         = 0x6.U(14.W)
+    val BADV        = 0x7.U(14.W)
+    val EENTRY      = 0xc.U(14.W)
+    val TLBIDX      = 0x10.U(14.W)
+    val TLBEHI      = 0x11.U(14.W)
+    val TLBELO0     = 0x12.U(14.W)
+    val TLBELO1     = 0x13.U(14.W)
+    val ASID        = 0x18.U(14.W)
+    val PGDL        = 0x19.U(14.W)
+    val PGDH        = 0x1a.U(14.W)
+    val PGD         = 0x1b.U(14.W)
+    val CPUID       = 0x20.U(14.W)
+    val SAVE0       = 0x30.U(14.W)
+    val SAVE1       = 0x31.U(14.W)
+    val SAVE2       = 0x32.U(14.W)
+    val SAVE3       = 0x33.U(14.W)
+    val TID         = 0x40.U(14.W)
+    val TCFG        = 0x41.U(14.W)
+    val TVAL        = 0x42.U(14.W)
+    val TICLR       = 0x44.U(14.W)
+    val LLBCTL      = 0x60.U(14.W)
+    val TLBRENTRY   = 0x88.U(14.W)
+    val CTAG        = 0x98.U(14.W)
+    val DMW0        = 0x180.U(14.W)
+    val DMW1        = 0x181.U(14.W)
+}
 
-    val CSR_LENx     = 14
-    val CSR_SIZE     = 9
-    val CSR_SIZE_LOG = 4
-    val CSR_BADVADDR = 15
+object ECodes {
+    val INT     = 0x00.U(6.W) 
+    val PIL     = 0x01.U(6.W)
+    val PIS     = 0x02.U(6.W)
+    val PIF     = 0x03.U(6.W)
+    val PME     = 0x04.U(6.W)
+    val PPI     = 0x07.U(6.W)
+    val ADEF    = 0x08.U(6.W)
+    val ADEM    = 0x08.U(6.W)
+    val ALE     = 0x09.U(6.W)
+    val SYS     = 0x0b.U(6.W)
+    val BRK     = 0x0c.U(6.W)
+    val INE     = 0x0d.U(6.W)
+    val IPE     = 0x0e.U(6.W)
+    val FPD     = 0x0f.U(6.W)
+    val FPE     = 0x12.U(6.W)
+    val TLBR    = 0x3F.U(6.W)
+    val NONE    = 0x25.U(6.W)
+    val ERTN    = 0x26.U(6.W)
+}
 
-    val CRMD    = 0.U
-    val CRMD_x  = "h0".U
-    val PRMD    = 1.U
-    val PRMD_x  = "h1".U
-    val ESTAT   = 2.U
-    val ESTAT_x = "h5".U
-    val ERA     = 3.U
-    val ERA_x   = "h6".U
-    val EENTRY  = 4.U
-    val EENTRY_x= "hc".U
-    val SAVE0   = 5.U
-    val SAVE0_x = "h30".U
-    val SAVE1   = 6.U
-    val SAVE1_x = "h31".U
-    val SAVE2   = 7.U
-    val SAVE2_x = "h32".U
-    val SAVE3   = 8.U
-    val SAVE3_x = "h33".U
+object WireBreak {
+    val IPI    = 12.U(7.W)
+    val TI     = 11.U(7.W) 
+    val PMI    = 10.U(7.W) 
+    val HWI0   = 9.U(7.W) 
+    val HWI1   = 8.U(7.W)
+    val HWI2   = 7.U(7.W)
+    val HWI3   = 6.U(7.W)
+    val HWI4   = 5.U(7.W)
+    val HWI5   = 4.U(7.W)
+    val HWI6   = 3.U(7.W)
+    val HWI7   = 2.U(7.W)
+    val SWI0   = 1.U(7.W)
+    val SWI1   = 0.U(7.W)
 }
