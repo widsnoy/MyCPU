@@ -44,7 +44,10 @@ val of16_sex = Cat(Fill(14, inst(25)), inst(25, 10), 0.U(2.W)) // IF Stage
 1. 处理例外结束后，IF 实际上是第二拍才 valid 为 1, 也就是说需要用寄存器将 CSR 的 flush_pc 保存一拍  
 2. A 是一个两位无符号数，B 是一位无符号数。A & B 期望补符号位，实际上补零，没有注意位宽不同调试了很久  
 
-# 5 月 12 日
+# 5 月 14 日
 为CPU增加取指地址错（ADEF）、地址非对齐（ALE）、断点（BRK）和指令不存在（INE）异常的支持。  
 为CPU增加中断的支持，包括2个软件中断、8个硬件中断和定时器中断。  
 为CPU增加控制状态寄存器ECFG、BADV、TID、TCFG、TVAL、TICLR。  
+
+emmm，CSR 超 lwt 的。感觉比我的数组模拟不知道高到哪里去了。  
+书上都不提要加 stable_counter 相关指令的，调了半天在 test.s 里面发现一个 RDTIMEL.W 才知道。导致 INE 了，产生了很奇怪的问题...    

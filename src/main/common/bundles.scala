@@ -18,8 +18,9 @@ class REG_IO extends Bundle {
 class CSR_IO extends Bundle {    
     val excp     = Output(UInt(2.W))
     val Ecode    = Output(UInt(6.W))
-    val Esubcode = Output(UInt(9.W))
     val pc       = Output(UInt(LENX.W))
+    val badv     = Output(Bool())
+    val badaddr  = Output(UInt(LENX.W))
     val usemask  = Output(Bool()) // 0 直接覆盖，1 考虑掩码
     val wen      = Output(Bool())
     val waddr    = Output(UInt(CSR_LENx.W))
@@ -45,6 +46,7 @@ class ID_INFO extends Bundle {
     val valid = Output(Bool())
     val inst  = Output(UInt(LENX.W))
     val pc    = Output(UInt(LENX.W))
+    val badv  = Output(Bool())
 }
 class BR_INFO extends Bundle {
     val flg   = Output(Bool())
@@ -91,9 +93,10 @@ class WRF_INFO extends Bundle {
 class OP_CSR_INFO extends Bundle {
     val excp     = Output(UInt(2.W)) // 0 -> do nothing, 1 -> excp, 2 -> ertn
     val Ecode    = Output(UInt(6.W))
-    val Esubcode = Output(UInt(9.W))
     val usemask  = Output(Bool()) // 0 直接覆盖，1 考虑掩码
     val pc       = Output(UInt(LENX.W))
+    val badv     = Output(Bool())
+    val badaddr  = Output(UInt(LENX.W))
     val wen      = Output(Bool())
     val waddr    = Output(UInt(CSR_LENx.W))
     val wdata    = Output(UInt(LENX.W))

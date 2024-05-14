@@ -36,7 +36,6 @@ class MEM_Stage extends Module {
     val alu_out = RegInit(0.U(LENX.W))
     val csr_excp        = RegInit(0.U(2.W))
     val csr_Ecode       = RegInit(0.U(6.W))
-    val csr_Esubcode    = RegInit(0.U(9.W))
     val csr_pc          = RegInit(0.U(LENX.W))
     val csr_usemask     = RegInit(false.B)
     val csr_wen         = RegInit(false.B)
@@ -44,6 +43,8 @@ class MEM_Stage extends Module {
     val csr_wdata       = RegInit(0.U(LENX.W))
     val csr_mask        = RegInit(0.U(LENX.W))
     val csr_raddr       = RegInit(0.U(CSR_LENx.W))
+    val csr_badv        = RegInit(false.B)
+    val csr_badaddr     = RegInit(0.U(LENX.W))
 
     when (ms_allowin && io.es.valid) {
         dest        := io.es.dest
@@ -56,7 +57,6 @@ class MEM_Stage extends Module {
         alu_out     := io.es.alu_out
         csr_excp        := io.rsc.excp
         csr_Ecode       := io.rsc.Ecode
-        csr_Esubcode    := io.rsc.Esubcode
         csr_usemask     := io.rsc.usemask
         csr_wen         := io.rsc.wen
         csr_waddr       := io.rsc.waddr
@@ -64,6 +64,8 @@ class MEM_Stage extends Module {
         csr_mask        := io.rsc.mask
         csr_raddr       := io.rsc.raddr
         csr_pc          := io.rsc.pc
+        csr_badv        := io.rsc.badv
+        csr_badaddr     := io.rsc.badaddr
     }
 
     io.ms_flush := io.wb_flush || (ms_valid && csr_excp =/= 0.U)
@@ -98,7 +100,6 @@ class MEM_Stage extends Module {
 
     io.csr.excp   := csr_excp
     io.csr.Ecode  := csr_Ecode
-    io.csr.Esubcode := csr_Esubcode
     io.csr.pc     := csr_pc
     io.csr.usemask:= csr_usemask  
     io.csr.wen    := csr_wen
@@ -106,4 +107,6 @@ class MEM_Stage extends Module {
     io.csr.wdata  := csr_wdata 
     io.csr.mask   := csr_mask 
     io.csr.raddr  := csr_raddr
+    io.csr.badv   := csr_badv
+    io.csr.badaddr:= csr_badaddr
 }

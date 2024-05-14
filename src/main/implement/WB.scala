@@ -34,7 +34,6 @@ class WB_Stage extends Module {
 
     val csr_excp        = RegInit(0.U(2.W))
     val csr_Ecode       = RegInit(0.U(6.W))
-    val csr_Esubcode    = RegInit(0.U(9.W))
     val csr_pc          = RegInit(0.U(LENX.W))
     val csr_usemask     = RegInit(false.B)
     val csr_wen         = RegInit(false.B)
@@ -42,6 +41,8 @@ class WB_Stage extends Module {
     val csr_wdata       = RegInit(0.U(LENX.W))
     val csr_mask        = RegInit(0.U(LENX.W))
     val csr_raddr       = RegInit(0.U(CSR_LENx.W))
+    val csr_badv        = RegInit(false.B)
+    val csr_badaddr     = RegInit(0.U(LENX.W))
 
     when (ws_allowin && io.ms.valid) {
         dest        := io.ms.dest
@@ -52,7 +53,6 @@ class WB_Stage extends Module {
         alu_out     := io.ms.alu_out
         csr_excp        := io.rsc.excp
         csr_Ecode       := io.rsc.Ecode
-        csr_Esubcode    := io.rsc.Esubcode
         csr_usemask     := io.rsc.usemask
         csr_wen         := io.rsc.wen
         csr_waddr       := io.rsc.waddr
@@ -60,20 +60,23 @@ class WB_Stage extends Module {
         csr_mask        := io.rsc.mask
         csr_raddr       := io.rsc.raddr
         csr_pc          := io.rsc.pc
+        csr_badv        := io.rsc.badv
+        csr_badaddr     := io.rsc.badaddr
     }
 
     io.wb_flush := ws_valid && csr_excp =/= 0.U
     // CSR
     io.csr.excp   := csr_excp & Fill(2, ws_valid.asUInt)
     io.csr.Ecode  := csr_Ecode
-    io.csr.Esubcode := csr_Esubcode
     io.csr.pc     := csr_pc
     io.csr.usemask:= csr_usemask  
     io.csr.wen    := csr_wen && ws_valid
     io.csr.waddr  := csr_waddr 
     io.csr.wdata  := csr_wdata 
     io.csr.mask   := csr_mask 
-    io.csr.raddr  := csr_raddr 
+    io.csr.raddr  := csr_raddr
+    io.csr.badv   := csr_badv
+    io.csr.badaddr:= csr_badaddr
 
     // 这里可以少做一次多路选择
     val alu_UH = Cat(0.U(16.W), alu_out(15, 0))
@@ -91,8 +94,8 @@ class WB_Stage extends Module {
     ))
     val wb_addr = dest
 
-    io.wrf.valid := wb_sel(0).asBool && ws_valid && (dest =/= 0.U(32.W)) && (csr_excp === 0.U)
-    io.wrf.ready := 1.U
+    io.wrf.valid := io.reg_wen
+    io.wrf.ready := true.B
     io.wrf.dest  := dest
     io.wrf.wdata := wb_data
 
@@ -101,7 +104,7 @@ class WB_Stage extends Module {
     io.reg_wdata := wb_data
 
     io.debug.wb_pc      := pc
-    io.debug.wb_rf_wen  := Fill(4, (wb_sel(0).asBool && ws_valid && (dest =/= 0.U(32.W)) && (csr_excp === 0.U)).asUInt)
+    io.debug.wb_rf_wen  := Fill(4, io.reg_wen.asUInt)
     io.debug.wb_rf_wnum := wb_addr
     io.debug.wb_rf_wdata:= wb_data
 }

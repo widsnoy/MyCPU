@@ -51,7 +51,6 @@ class EXE_Stage extends Module {
 
     val csr_excp        = RegInit(0.U(2.W))
     val csr_Ecode       = RegInit(0.U(6.W))
-    val csr_Esubcode    = RegInit(0.U(9.W))
     val csr_pc          = RegInit(0.U(LENX.W))
     val csr_usemask     = RegInit(false.B)
     val csr_wen         = RegInit(false.B)
@@ -59,6 +58,8 @@ class EXE_Stage extends Module {
     val csr_wdata       = RegInit(0.U(LENX.W))
     val csr_mask        = RegInit(0.U(LENX.W))
     val csr_raddr       = RegInit(0.U(CSR_LENx.W))
+    val csr_badv        = RegInit(false.B)
+    val csr_badaddr     = RegInit(0.U(LENX.W))
 
     when (es_allowin && io.ds.valid) {
         dest        := io.ds.dest
@@ -72,7 +73,6 @@ class EXE_Stage extends Module {
         rs3_rd      := io.ds.rs3_rd
         csr_excp        := io.rsc.excp
         csr_Ecode       := io.rsc.Ecode
-        csr_Esubcode    := io.rsc.Esubcode
         csr_usemask     := io.rsc.usemask
         csr_wen         := io.rsc.wen
         csr_waddr       := io.rsc.waddr
@@ -80,6 +80,8 @@ class EXE_Stage extends Module {
         csr_mask        := io.rsc.mask
         csr_raddr       := io.rsc.raddr
         csr_pc          := io.rsc.pc
+        csr_badv        := io.rsc.badv
+        csr_badaddr     := io.rsc.badaddr
     }
 
     io.es_flush := io.ms_flush || (es_valid && csr_excp =/= 0.U)
@@ -144,7 +146,21 @@ class EXE_Stage extends Module {
     val wen_H       = Mux(addr_mod_4 === 0.U, "b0011".U, "b1100".U)
     val wen_B       = (1.U(32.W) << addr_mod_4)(3, 0)
 
-    io.data.wen  := Mux(!(mem_wen(2).asBool && es_valid) || (csr_excp =/= 0.U) || io.ms_flush, 0.U(4.W), MuxCase("b1111".U, Seq(
+    val p_exc     = MuxCase("b000".U(3.W), Seq(
+       (csr_excp === 0.U && rf_wen === REN_S && alu_out(1, 0) =/= 0.U)      -> "b001".U(3.W),
+       (csr_excp === 0.U && rf_wen(2, 1) === "b10".U && alu_out(0) =/= 0.U) -> "b010".U(3.W),
+       (csr_excp === 0.U && mem_wen === MEN_S && alu_out(1, 0) =/= 0.U)     -> "b011".U(3.W),
+       (csr_excp === 0.U && mem_wen === MEN_H && alu_out(0) =/= 0.U)        -> "b100".U(3.W)
+    ))
+    val check_exc = ListLookup(p_exc, List(csr_excp, csr_Ecode, csr_badv, csr_badaddr), Array(
+       BitPat("b001".U(3.W)) -> List(1.U(2.W), ECodes.ALE, true.B, alu_out),
+       BitPat("b010".U(3.W)) -> List(1.U(2.W), ECodes.ALE, true.B, alu_out),
+       BitPat("b011".U(3.W)) -> List(1.U(2.W), ECodes.ALE, true.B, alu_out),
+       BitPat("b100".U(3.W)) -> List(1.U(2.W), ECodes.ALE, true.B, alu_out)
+    ))
+    val have_exc :: cecode :: cbadv :: cbadaddr :: Nil = check_exc
+    
+    io.data.wen  := Mux(!(mem_wen(2).asBool && es_valid) || (have_exc =/= 0.U) || io.ms_flush, 0.U(4.W), MuxCase("b1111".U, Seq(
         (mem_wen === MEN_H) -> wen_H,
         (mem_wen === MEN_B) -> wen_B
     )))
@@ -164,9 +180,8 @@ class EXE_Stage extends Module {
     io.to_mem.alu_out   := alu_out
     io.to_mem.dest      := dest
 
-    io.csr.excp   := csr_excp
-    io.csr.Ecode  := csr_Ecode
-    io.csr.Esubcode := csr_Esubcode
+    io.csr.excp   := have_exc
+    io.csr.Ecode  := cecode
     io.csr.pc     := csr_pc
     io.csr.usemask:= csr_usemask  
     io.csr.wen    := csr_wen
@@ -174,4 +189,6 @@ class EXE_Stage extends Module {
     io.csr.wdata  := csr_wdata 
     io.csr.mask   := csr_mask 
     io.csr.raddr  := csr_raddr
+    io.csr.badv   := cbadv
+    io.csr.badaddr:= cbadaddr
 }

@@ -26,6 +26,12 @@ class ID_Stage extends Module {
         val csr        = new OP_CSR_INFO()
         val ds_flush = Output(Bool())
         val es_flush = Input(Bool())
+        
+        val have_int = Input(Bool())
+        val counter_H   = Input(UInt(LENX.W))
+        val counter_L   = Input(UInt(LENX.W))
+        val counter_id  = Input(UInt(LENX.W))
+
     })
     val ds_ready_go    = (!io.wr_EX.valid || io.wr_EX.ready) && (!io.wr_MEM.valid || io.wr_MEM.ready) && (!io.wr_WB.valid || io.wr_WB.ready)
     val ds_valid       = RegInit(false.B)
@@ -35,9 +41,11 @@ class ID_Stage extends Module {
     io.ds_allowin     := ds_allowin
     val inst = RegInit(0.U(LENX.W))
     val pc   = RegInit(0.U(LENX.W))
+    val badv = RegInit(false.B)
     when (ds_allowin && io.fs.valid) {
         inst := io.fs.inst
         pc   := io.fs.pc
+        badv := io.fs.badv
     }
     val rd      = inst(4, 0)
     val rj      = inst(9, 5)
@@ -68,42 +76,42 @@ class ID_Stage extends Module {
 
     val ID_signals = ListLookup(inst, List(ALU_X, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_X),
         Array (
-            add_w       -> List(ALU_ADD, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            sub_w       -> List(ALU_SUB, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            slt         -> List(ALU_SLT, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            sltu        -> List(ALU_SLTU, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            slti        -> List(ALU_SLT, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_S, WB_ALU),
-            sltui       -> List(ALU_SLTU, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_S, WB_ALU),
-            nor         -> List(ALU_NOR, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            and         -> List(ALU_AND, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            or          -> List(ALU_OR, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            xor         -> List(ALU_XOR, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            andi        -> List(ALU_AND, OP1_RS1, OP2_SI12_UEX, MEN_X, REN_S, WB_ALU),
-            ori         -> List(ALU_OR, OP1_RS1, OP2_SI12_UEX, MEN_X, REN_S, WB_ALU),
-            xori        -> List(ALU_XOR, OP1_RS1, OP2_SI12_UEX, MEN_X, REN_S, WB_ALU),
-            slli_w      -> List(ALU_SLL, OP1_RS1, OP2_UI5, MEN_X, REN_S, WB_ALU),
-            srli_w      -> List(ALU_SRL, OP1_RS1, OP2_UI5, MEN_X, REN_S, WB_ALU),
-            sra_w       -> List(ALU_SRA, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            sll_w       -> List(ALU_SLL, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            srl_w       -> List(ALU_SRL, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            srai_w      -> List(ALU_SRA, OP1_RS1, OP2_UI5, MEN_X, REN_S, WB_ALU),
-            addi_w      -> List(ALU_ADD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_S, WB_ALU),
+            add_w       -> List(ALU_ADD, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            sub_w       -> List(ALU_SUB, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            slt         -> List(ALU_SLT, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            sltu        -> List(ALU_SLTU, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            slti        -> List(ALU_SLT, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_X, WB_ALU),
+            sltui       -> List(ALU_SLTU, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_X, WB_ALU),
+            nor         -> List(ALU_NOR, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            and         -> List(ALU_AND, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            or          -> List(ALU_OR, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            xor         -> List(ALU_XOR, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            andi        -> List(ALU_AND, OP1_RS1, OP2_SI12_UEX, MEN_X, REN_X, WB_ALU),
+            ori         -> List(ALU_OR, OP1_RS1, OP2_SI12_UEX, MEN_X, REN_X, WB_ALU),
+            xori        -> List(ALU_XOR, OP1_RS1, OP2_SI12_UEX, MEN_X, REN_X, WB_ALU),
+            slli_w      -> List(ALU_SLL, OP1_RS1, OP2_UI5, MEN_X, REN_X, WB_ALU),
+            srli_w      -> List(ALU_SRL, OP1_RS1, OP2_UI5, MEN_X, REN_X, WB_ALU),
+            sra_w       -> List(ALU_SRA, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            sll_w       -> List(ALU_SLL, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            srl_w       -> List(ALU_SRL, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            srai_w      -> List(ALU_SRA, OP1_RS1, OP2_UI5, MEN_X, REN_X, WB_ALU),
+            addi_w      -> List(ALU_ADD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_X, WB_ALU),
             ld_w        -> List(LD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_S, WB_MEM),
             st_w        -> List(ST, OP1_RS1, OP2_SI12_SEX, MEN_S, REN_X, WB_X),
-            jirl        -> List(BR_JIRL, OP1_RS1, OP2_OF16_SEX, MEN_X, REN_S, WB_ALU),
+            jirl        -> List(BR_JIRL, OP1_RS1, OP2_OF16_SEX, MEN_X, REN_X, WB_ALU),
             inst_b      -> List(BR_B, OP1_PC, OP2_OF26_SEX, MEN_X, REN_X, WB_X),
-            inst_bl     -> List(BR_BL, OP1_PC, OP2_OF26_SEX, MEN_X, REN_S, WB_ALU),
+            inst_bl     -> List(BR_BL, OP1_PC, OP2_OF26_SEX, MEN_X, REN_X, WB_ALU),
             beq         -> List(BR_BEQ, OP1_PC, OP2_OF16_SEX, MEN_X, REN_X, WB_X),
             bne         -> List(BR_BNE, OP1_PC, OP2_OF16_SEX, MEN_X, REN_X, WB_X),
-            lu12i_w     -> List(ALU_LU12I, OP1_X, OP2_SI20_SEX, MEN_X, REN_S, WB_ALU),
-            pcaddu12i   -> List(ALU_ADD, OP1_PC, OP2_SI20_SEX, MEN_X, REN_S, WB_ALU),
-            mul_w       -> List(ALU_MULL, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            mulh_w      -> List(ALU_MULH, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            mulh_wu     -> List(ALU_MULHU, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            div_w       -> List(ALU_DIVS, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            div_wu      -> List(ALU_DIVU, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            mod_w       -> List(ALU_MODS, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
-            mod_wu      -> List(ALU_MODU, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            lu12i_w     -> List(ALU_LU12I, OP1_X, OP2_SI20_SEX, MEN_X, REN_X, WB_ALU),
+            pcaddu12i   -> List(ALU_ADD, OP1_PC, OP2_SI20_SEX, MEN_X, REN_X, WB_ALU),
+            mul_w       -> List(ALU_MULL, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            mulh_w      -> List(ALU_MULH, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            mulh_wu     -> List(ALU_MULHU, OP1_RS1, OP2_RS2, MEN_X,REN_X, WB_ALU),
+            div_w       -> List(ALU_DIVS, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            div_wu      -> List(ALU_DIVU, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            mod_w       -> List(ALU_MODS, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
+            mod_wu      -> List(ALU_MODU, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_ALU),
             blt         -> List(BR_BLT, OP1_PC, OP2_OF16_SEX, MEN_X, REN_X, WB_X),
             bge         -> List(BR_BGE, OP1_PC, OP2_OF16_SEX, MEN_X, REN_X, WB_X),
             bltu        -> List(BR_BLTU, OP1_PC, OP2_OF16_SEX, MEN_X, REN_X, WB_X),
@@ -114,11 +122,15 @@ class ID_Stage extends Module {
             st_h        -> List(ST, OP1_RS1, OP2_SI12_SEX, MEN_H, REN_X, WB_X),
             ld_bu       -> List(LD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_BU, WB_MEM),
             ld_hu       -> List(LD, OP1_RS1, OP2_SI12_SEX, MEN_X, REN_HU, WB_MEM),
-            csrrd       -> List(CSRRD, OP1_X, OP2_X, MEN_X, REN_S, WB_CSR),
-            csrwr       -> List(CSRWR, OP1_X, OP2_X, MEN_X, REN_S, WB_BOTH),
-            csrxchg     -> List(CSRXCHG, OP1_X, OP2_X, MEN_X, REN_S, WB_BOTH),
+            csrrd       -> List(CSRRD, OP1_X, OP2_X, MEN_X, REN_X, WB_CSR),
+            csrwr       -> List(CSRWR, OP1_X, OP2_X, MEN_X, REN_X, WB_BOTH),
+            csrxchg     -> List(CSRXCHG, OP1_X, OP2_X, MEN_X, REN_X, WB_BOTH),
             syscall     -> List(SYSCALL, OP1_X, OP2_X, MEN_X, REN_X, WB_X),
-            ertn        -> List(ERTN, OP1_X, OP2_X, MEN_X, REN_X, WB_X)
+            ertn        -> List(ERTN, OP1_X, OP2_X, MEN_X, REN_X, WB_X),
+            i_break     -> List(BREAK, OP1_X, OP2_X, MEN_X, REN_X, WB_X),
+            rdcntid     -> List(ALU_ADD, OP1_X, OP2_RDCNTID, MEN_X, REN_X, WB_ALU),
+            rdcntvlw    -> List(ALU_ADD, OP1_X, OP2_COUNTER_L, MEN_X, REN_X, WB_ALU),
+            rdcntvhw    -> List(ALU_ADD, OP1_X, OP2_COUNTER_H, MEN_X, REN_X, WB_ALU)
         )
     )
     val exe_fun :: op1_sel :: op2_sel :: mem_wen :: rf_wen :: wb_sel :: Nil = ID_signals
@@ -128,15 +140,18 @@ class ID_Stage extends Module {
         (op1_sel === OP1_PC)  -> pc
     ))
     val op2_data = MuxCase(0.U(32.W), Seq(
-        (op2_sel === OP2_RS2)  -> rs2_rd,
-        (op2_sel === OP2_UI5)  -> ui5,
-        (op2_sel === OP2_SI12_SEX) -> i12_sex,
-        (op2_sel === OP2_SI20_SEX) -> i20_sex,
-        (op2_sel === OP2_RD)   -> rs3_rd,
-        (op2_sel === OP2_OF26_SEX) -> of26_sex,
-        (op2_sel === OP2_OF16_SEX) -> of16_sex,
-        (op2_sel === OP2_SI12_UEX) -> i12_uex,
-        (op2_sel === OP2_CSR_NUM)  -> csr_num
+        (op2_sel === OP2_RS2)       -> rs2_rd,
+        (op2_sel === OP2_UI5)       -> ui5,
+        (op2_sel === OP2_SI12_SEX)  -> i12_sex,
+        (op2_sel === OP2_SI20_SEX)  -> i20_sex,
+        (op2_sel === OP2_RD)        -> rs3_rd,
+        (op2_sel === OP2_OF26_SEX)  -> of26_sex,
+        (op2_sel === OP2_OF16_SEX)  -> of16_sex,
+        (op2_sel === OP2_SI12_UEX)  -> i12_uex,
+        (op2_sel === OP2_CSR_NUM)   -> csr_num,
+        (op2_sel === OP2_RDCNTID)   -> io.counter_id,
+        (op2_sel === OP2_COUNTER_L) -> io.counter_L,
+        (op2_sel === OP2_COUNTER_H) -> io.counter_H
     ))
 
     //branch
@@ -152,16 +167,26 @@ class ID_Stage extends Module {
         (exe_fun === BR_BGEU)  -> (rs1_rd.asUInt >= rs3_rd.asUInt)
     ))
     io.br.target := op1_data + op2_data
+    val p_exc = MuxCase("b000".U(3.W), Seq(
+        io.have_int.asBool        -> "b111".U(3.W),
+        badv                      -> "b001".U(3.W),
+        (exe_fun === SYSCALL)     -> "b010".U(3.W),
+        (exe_fun === BREAK)       -> "b011".U(3.W),
+        (exe_fun === ALU_X)       -> "b100".U(3.W)
+    ))
+    val check_exc = ListLookup(p_exc, List(false.B, ECodes.NONE), Array(
+        BitPat("b001".U(3.W)) -> List(true.B, ECodes.ADEF),
+        BitPat("b010".U(3.W)) -> List(true.B, ECodes.SYS),
+        BitPat("b011".U(3.W)) -> List(true.B, ECodes.BRK),
+        BitPat("b100".U(3.W)) -> List(true.B, ECodes.INE),
+        BitPat("b111".U(3.W)) -> List(true.B, ECodes.INT)
+    ))
+    val have_exc :: cecode :: Nil = check_exc
     io.csr.excp := MuxCase(0.U(2.W), Seq(
-        (exe_fun === SYSCALL) -> 1.U(2.W),
+        have_exc.asBool       -> 1.U(2.W),
         (exe_fun === ERTN)    -> 2.U(2.W)
     ))
-    io.csr.Ecode := MuxCase(0.U(6.W), Seq(
-        (exe_fun === SYSCALL) -> ECodes.SYS
-    ))
-    io.csr.Esubcode := MuxCase(0.U(9.W), Seq(
-        (exe_fun === SYSCALL) -> 0.U(9.W)
-    ))
+    io.csr.Ecode := cecode
     io.csr.pc     := pc
     io.csr.usemask:= (exe_fun === CSRXCHG)
     io.csr.wen    := (wb_sel === WB_BOTH) && (io.csr.excp === 0.U)
@@ -169,6 +194,8 @@ class ID_Stage extends Module {
     io.csr.wdata  := rs3_rd
     io.csr.mask   := rs1_rd
     io.csr.raddr  := csr_num
+    io.csr.badv       := cecode === ECodes.ADEF
+    io.csr.badaddr    := pc
 
     io.ds_flush   := io.es_flush || (ds_valid && io.csr.excp =/= 0.U)
 
@@ -180,5 +207,10 @@ class ID_Stage extends Module {
     io.to_exe.rf_wen  := rf_wen
     io.to_exe.pc := pc
     io.to_exe.rs3_rd := rs3_rd
-    io.to_exe.dest  := Mux(exe_fun === BR_BL, 1.U(LENx.W), rd)
+    io.to_exe.dest  := MuxCase(rd, Seq(
+        (exe_fun === BR_BL)       -> 1.U(LENx.W),
+        (op2_sel === OP2_RDCNTID) -> rj 
+    ))
+
+    Mux(exe_fun === BR_BL, 1.U(LENx.W), rd)
 }

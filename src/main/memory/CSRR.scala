@@ -8,9 +8,9 @@ import common.Consts._
 trait base {
   val id: UInt
   val info: Data
-  val rw: UInt
+  val wa: UInt
   def write(value: UInt) = {
-    info := ((~rw & info.asUInt) | (rw & value)).asTypeOf(info)
+    info := ((~wa & info.asUInt) | (wa & value)).asTypeOf(info)
   }
 }
 
@@ -31,7 +31,7 @@ class CRMD extends base {
     init
   })
   override val id = CSR.CRMD
-  override val rw = "b0000_0000_0000_0000_0000_0001_1111_1111".U
+  override val wa = "b0000_0000_0000_0000_0000_0001_1111_1111".U
 }
 
 class PRMD_info extends Bundle {
@@ -43,7 +43,7 @@ class PRMD_info extends Bundle {
 class PRMD extends base {
   override val info = RegInit(0.U.asTypeOf(new PRMD_info))
   override val id   = CSR.PRMD
-  override val rw   = "b0000_0000_0000_0000_0000_0000_0000_0111".U
+  override val wa   = "b0000_0000_0000_0000_0000_0000_0000_0111".U
 }
 
 class EUEN_info extends Bundle {
@@ -54,7 +54,7 @@ class EUEN_info extends Bundle {
 class EUEN extends base {
   override val info = RegInit(0.U.asTypeOf(new EUEN_info))
   override val id   = CSR.EUEN
-  override val rw   = "b0000_0000_0000_0000_0000_0000_0000_0001".U
+  override val wa   = "b0000_0000_0000_0000_0000_0000_0000_0001".U
 }
 
 class ECFG_info extends Bundle {
@@ -67,7 +67,7 @@ class ECFG_info extends Bundle {
 class ECFG extends base {
   override val info = RegInit(0.U.asTypeOf(new ECFG_info))
   override val id   = CSR.ECFG
-  override val rw   = "b0000_0000_0000_0000_0001_1011_1111_1111".U
+  override val wa   = "b0000_0000_0000_0000_0001_1011_1111_1111".U
 }
 
 class ESTAT_info extends Bundle {
@@ -85,7 +85,7 @@ class ESTAT_info extends Bundle {
 class ESTAT extends base {
   override val info = RegInit(0.U.asTypeOf(new ESTAT_info))
   override val id   = CSR.ESTAT
-  override val rw   = "b0000_0000_0000_0000_0000_0000_0000_0011".U
+  override val wa   = "b0000_0000_0000_0000_0000_0000_0000_0011".U
 }
 
 class ERA_info extends Bundle {
@@ -95,7 +95,7 @@ class ERA_info extends Bundle {
 class ERA extends base {
   override val info = RegInit(0.U.asTypeOf(new ERA_info))
   override val id   = CSR.ERA
-  override val rw   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
+  override val wa   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
 }
 
 class BADV_info extends Bundle {
@@ -105,7 +105,7 @@ class BADV_info extends Bundle {
 class BADV extends base {
   override val info = RegInit(0.U.asTypeOf(new BADV_info))
   override val id   = CSR.BADV
-  override val rw   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
+  override val wa   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
 }
 
 class EENTRY_info extends Bundle {
@@ -116,7 +116,7 @@ class EENTRY_info extends Bundle {
 class EENTRY extends base {
   override val info = RegInit(0.U.asTypeOf(new EENTRY_info))
   override val id   = CSR.EENTRY
-  override val rw   = "b1111_1111_1111_1111_1111_1111_1100_0000".U
+  override val wa   = "b1111_1111_1111_1111_1111_1111_1100_0000".U
 }
 
 class SAVE0_info extends Bundle {
@@ -126,7 +126,7 @@ class SAVE0_info extends Bundle {
 class SAVE0 extends base {
   override val info = RegInit(0.U.asTypeOf(new SAVE0_info))
   override val id   = CSR.SAVE0
-  override val rw   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
+  override val wa   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
 }
 
 class SAVE1_info extends Bundle {
@@ -136,7 +136,7 @@ class SAVE1_info extends Bundle {
 class SAVE1 extends base {
   override val info = RegInit(0.U.asTypeOf(new SAVE1_info))
   override val id   = CSR.SAVE1
-  override val rw   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
+  override val wa   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
 }
 
 class SAVE2_info extends Bundle {
@@ -146,7 +146,7 @@ class SAVE2_info extends Bundle {
 class SAVE2 extends base {
   override val info = RegInit(0.U.asTypeOf(new SAVE2_info))
   override val id   = CSR.SAVE2
-  override val rw   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
+  override val wa   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
 }
 
 class SAVE3_info extends Bundle {
@@ -156,7 +156,7 @@ class SAVE3_info extends Bundle {
 class SAVE3 extends base {
   override val info = RegInit(0.U.asTypeOf(new SAVE3_info))
   override val id   = CSR.SAVE3
-  override val rw   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
+  override val wa   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
 }
 
 class TID_info extends Bundle {
@@ -166,12 +166,12 @@ class TID_info extends Bundle {
 class TID extends base {
   override val info = RegInit(0.U.asTypeOf(new TID_info))
   override val id   = CSR.TID
-  override val rw   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
+  override val wa   = "b1111_1111_1111_1111_1111_1111_1111_1111".U
 }
 
 class TCFG_info extends Bundle {
-  val zero     = UInt((32 - COUNT_N).W)
-  val initval  = UInt((COUNT_N - 2).W)
+  val zero     = UInt((32 - TIMER_X).W)
+  val initval  = UInt((TIMER_X - 2).W)
   val preiodic = Bool()
   val en       = Bool()
 }
@@ -179,18 +179,18 @@ class TCFG_info extends Bundle {
 class TCFG extends base {
   override val info     = RegInit(0.U.asTypeOf(new TCFG_info))
   override val id       = CSR.TCFG
-  override val rw       = "b0000_1111_1111_1111_1111_1111_1111_1111".U
+  override val wa       = "b0000_1111_1111_1111_1111_1111_1111_1111".U
 }
 
 class TVAL_info extends Bundle {
-  val zero    = UInt((32 - COUNT_N).W)
-  val timeval = UInt(COUNT_N.W)
+  val zero    = UInt((32 - TIMER_X).W)
+  val timeval = UInt(TIMER_X.W)
 }
 
 class TVAL extends base {
-  override val info = RegInit(0.U.asTypeOf(new TVAL_info))
+  override val info = RegInit(Cat(0.U((32 - TIMER_X).W), 233.U(TIMER_X.W)).asTypeOf(new TVAL_info))
   override val id   = CSR.TVAL
-  override val rw   = "b0000_0000_0000_0000_0000_0000_0000_0000".U
+  override val wa   = "b0000_0000_0000_0000_0000_0000_0000_0000".U
 }
 
 class TICLR_info extends Bundle {
@@ -201,5 +201,5 @@ class TICLR_info extends Bundle {
 class TICLR extends base {
   override val info = RegInit(0.U.asTypeOf(new TICLR_info))
   override val id   = CSR.TICLR
-  override val rw   = "b0000_0000_0000_0000_0000_0000_0000_0001".U
+  override val wa   = "b0000_0000_0000_0000_0000_0000_0000_0001".U
 }

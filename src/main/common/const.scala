@@ -10,7 +10,7 @@ object Consts {
     val HILO        = 64
     val mulClockNum = 2
     val divClockNum = 8
-    val COUNT_N     = 25
+    val TIMER_X     = 25
     val CSR_LENx    = 14
 
     val EXE_FUN_LEN = 6
@@ -50,6 +50,7 @@ object Consts {
     val CSRXCHG     =  33.U(EXE_FUN_LEN.W)
     val ERTN        =  34.U(EXE_FUN_LEN.W)
     val SYSCALL     =  35.U(EXE_FUN_LEN.W)
+    val BREAK       =  36.U(EXE_FUN_LEN.W)
 
     val OP1_LEN = 3
     val OP1_RS1 = 0.U(OP1_LEN.W)
@@ -67,15 +68,21 @@ object Consts {
     val OP2_OF26_SEX    = 7.U(OP2_LEN.W)
     val OP2_SI12_UEX    = 8.U(OP2_LEN.W)
     val OP2_CSR_NUM     = 9.U(OP2_LEN.W)
+    val OP2_RDCNTID     = 10.U(OP2_LEN.W)
+    val OP2_COUNTER_L   = 11.U(OP2_LEN.W)
+    val OP2_COUNTER_H   = 12.U(OP2_LEN.W)
 
+
+    // store
     val MEN_LEN = 3
     val MEN_X   = "b000".U
     val MEN_S   = "b100".U
     val MEN_H   = "b110".U
     val MEN_B   = "b111".U
 
+    // load
     val REN_LEN = 3
-    val REN_X   = "b000".U
+    val REN_X   = "b010".U
     val REN_S   = "b000".U
     val REN_H   = "b100".U
     val REN_B   = "b110".U
@@ -130,7 +137,7 @@ object ECodes {
     val PME     = 0x04.U(6.W)
     val PPI     = 0x07.U(6.W)
     val ADEF    = 0x08.U(6.W)
-    val ADEM    = 0x08.U(6.W)
+    val ADEM    = 0x24.U(6.W)
     val ALE     = 0x09.U(6.W)
     val SYS     = 0x0b.U(6.W)
     val BRK     = 0x0c.U(6.W)

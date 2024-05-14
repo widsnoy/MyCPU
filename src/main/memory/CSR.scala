@@ -10,6 +10,10 @@ class CSR extends Module {
         val csr = Flipped(new CSR_IO())
         val flush_pc = Output(Bool())
         val next_pc  = Output(UInt(LENX.W))
+        val have_int = Output(Bool())
+        val counter_H   = Output(UInt(LENX.W))
+        val counter_L   = Output(UInt(LENX.W))
+        val counter_id  = Output(UInt(LENX.W))
     })
 
     val CRMD   = new CRMD
@@ -76,26 +80,32 @@ class CSR extends Module {
         // DMW1,
     )
 
-//    val stable_counter = RegInit(0.U(64.W))
-//    stable_counter := Mux(stable_counter === ALL_MASK.U, 0.U, stable_counter + 1.U)
+    val stable_counter = RegInit(0.U(64.W))
+    stable_counter := Mux(stable_counter === "hffffffffffffffff".U, 0.U, stable_counter + 1.U)
+
+    io.counter_H  := stable_counter(63, 32)
+    io.counter_L  := stable_counter(31, 0)
+    io.counter_id := TID.info.tid
 
     io.csr.rdata := 0.U
     for (x <- csrlist) {
         when (x.id === io.csr.raddr) {
-            io.csr.rdata := x.info.asUInt
+            io.csr.rdata := Mux(x.id === CSR.TICLR, 0.U(LENX.W), x.info.asUInt)
         }
     }
 
-    io.flush_pc         := io.csr.excp =/= 0.U
-    io.next_pc          := Mux(io.csr.excp === 1.U, EENTRY.info.asUInt, ERA.info.asUInt)
+    io.flush_pc := io.csr.excp =/= 0.U
+    io.next_pc  := Mux(io.csr.excp === 1.U, EENTRY.info.asUInt, ERA.info.asUInt)
+    io.have_int := ((Cat(ESTAT.info.is_12, ESTAT.info.is_11, ESTAT.info.is_9_2, ESTAT.info.is_1_0) & Cat(ECFG.info.lie_12_11, ECFG.info.lie_9_0)).orR.asBool) && CRMD.info.ie
     when (io.csr.excp === 1.U) {
         CRMD.info.plv := "b00".U
         CRMD.info.ie  := false.B
         PRMD.info.pplv := CRMD.info.plv
         PRMD.info.pie  := CRMD.info.ie
-        ERA.write(io.csr.pc)
-        ESTAT.info.esubcode := io.csr.Esubcode
+        ERA.info.pc := io.csr.pc
+        ESTAT.info.esubcode := Mux(io.csr.Ecode === ECodes.ADEM, 1.U(9.W), 0.U(9.W))
         ESTAT.info.ecode := io.csr.Ecode
+        when (io.csr.badv) { BADV.write(io.csr.badaddr) }
     }.elsewhen (io.csr.excp === 2.U) {
         CRMD.info.plv := PRMD.info.pplv
         CRMD.info.ie  := PRMD.info.pie
@@ -104,8 +114,27 @@ class CSR extends Module {
             CRMD.info.pg := true.B
         }
     }
+
+    val MASK = Mux(io.csr.usemask, io.csr.mask, "b1111_1111_1111_1111_1111_1111_1111_1111".U)
+
+    //TVAL
+    when (io.csr.wen && io.csr.waddr === TCFG.id) {
+        val rval = ((MASK & io.csr.wdata) | (~MASK & TCFG.info.asUInt))
+        TVAL.info.timeval := rval(TIMER_X - 1, 2) ## 1.U(2.W)
+    }.elsewhen (TCFG.info.en) {
+        when (TVAL.info.timeval === 0.U) {
+            TVAL.info.timeval := Mux(TCFG.info.preiodic, Cat(TCFG.info.initval, 0.U(2.W)), 0.U(TIMER_X.W))
+        }.otherwise {
+            TVAL.info.timeval := TVAL.info.timeval - 1.U
+        }
+    }
+
+    val TVAL_edge = ShiftRegister(TVAL.info.timeval, 1)
+    when (TCFG.info.en && TVAL.info.timeval === 0.U && TVAL_edge === 1.U) {
+        ESTAT.info.is_11 := true.B
+    }
+    
     when (io.csr.wen) {
-        val MASK = Mux(io.csr.usemask, io.csr.mask, "b1111_1111_1111_1111_1111_1111_1111_1111".U)
         for (x <- csrlist) {
             when (x.id === io.csr.waddr) {
                 val rval = ((MASK & io.csr.wdata) | (~MASK & x.info.asUInt))
@@ -114,7 +143,11 @@ class CSR extends Module {
                     CRMD.info.datf := "b01".U
                     CRMD.info.datm := "b01".U
                 }
+                when (x.id === CSR.TICLR && rval(0) === 1.U) {
+                    ESTAT.info.is_11 := false.B
+                }
             }
         }
     }
+    
 }

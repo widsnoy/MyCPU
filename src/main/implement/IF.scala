@@ -34,9 +34,11 @@ class IF_Stage extends Module {
     io.inst.en      := to_fs_valid && fs_allowin
     io.inst.addr    := next_pc
 
+
     io.to_ds.valid  := fs_valid && fs_ready_go && !io.br.flg && !csr_pc_flush && !io.ds_flush
+    io.to_ds.badv   := pc(1, 0) =/= 0.U(2.W)
     io.to_ds.pc     := pc
-    io.to_ds.inst   := Mux(io.to_ds.valid, io.inst.rdata, 0.U(32.W))
+    io.to_ds.inst   := Mux(io.to_ds.valid && !io.to_ds.badv, io.inst.rdata, 0.U(32.W))
 
     when (to_fs_valid && fs_allowin) {pc := next_pc}
 }

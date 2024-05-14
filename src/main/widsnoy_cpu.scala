@@ -38,6 +38,10 @@ class widsnoy_cpu extends Module {
     ID.wr_WB     <> WB.wrf
     ID.csr       <> EX.rsc
     ID.es_flush  <> EX.es_flush
+    ID.have_int  <> csr.have_int
+    ID.counter_H <> csr.counter_H
+    ID.counter_L <> csr.counter_L
+    ID.counter_id <> csr.counter_id
 
     EX.ms_allowin <> MEM.ms_allowin
     EX.to_mem     <> MEM.es
@@ -58,7 +62,6 @@ class widsnoy_cpu extends Module {
     
     WB.csr.excp     <> csr.csr.excp
     WB.csr.Ecode    <> csr.csr.Ecode
-    WB.csr.Esubcode <> csr.csr.Esubcode
     WB.csr.pc       <> csr.csr.pc
     WB.csr.usemask  <> csr.csr.usemask
     WB.csr.wen      <> csr.csr.wen
@@ -67,4 +70,6 @@ class widsnoy_cpu extends Module {
     WB.csr.mask     <> csr.csr.mask
     WB.csr.raddr    <> csr.csr.raddr
     WB.csr.rdata    <> csr.csr.rdata
+    WB.csr.badv     <> csr.csr.badv
+    WB.csr.badaddr  <> csr.csr.badaddr
 }
