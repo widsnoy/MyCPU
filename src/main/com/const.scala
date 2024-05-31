@@ -47,7 +47,7 @@ object func {
     val csrrd   =  31.U(len.W)
     val csrwr   =  32.U(len.W)
     val csrxchg =  33.U(len.W)
-    val srtn    =  34.U(len.W)
+    val ertn    =  34.U(len.W)
     val syscall =  35.U(len.W)
     val break   =  36.U(len.W)
 }
@@ -59,36 +59,20 @@ object op1 {
     val rj   = 2.U(len.W)
 }
 
-    val OP2_LEN         = 4
-    val OP2_X           = 0.U(OP2_LEN.W)
-    val OP2_RS2         = 1.U(OP2_LEN.W)
-    val OP2_UI5         = 2.U(OP2_LEN.W)
-    val OP2_RD          = 3.U(OP2_LEN.W)
-    val OP2_SI12_SEX    = 4.U(OP2_LEN.W)
-    val OP2_SI20_SEX    = 5.U(OP2_LEN.W)
-    val OP2_OF16_SEX    = 6.U(OP2_LEN.W)
-    val OP2_OF26_SEX    = 7.U(OP2_LEN.W)
-    val OP2_SI12_UEX    = 8.U(OP2_LEN.W)
-    val OP2_CSR_NUM     = 9.U(OP2_LEN.W)
-    val OP2_RDCNTID     = 10.U(OP2_LEN.W)
-    val OP2_COUNTER_L   = 11.U(OP2_LEN.W)
-    val OP2_COUNTER_H   = 12.U(OP2_LEN.W)
-
 object op2 {
     val len         = 4
     val null        = 0.U(len.W)
     val rk          = 1.U(len.W)
-    val rd          = 2.U(len.W)
-    val ui5         = 3.U(len.W)    
-    val si12        = 4.U(len.W)        
-    val si12u       = 5.U(len.W)        
-    val si20        = 6.U(len.W)        
-    val of16        = 7.U(len.W)        
-    val of26        = 8.U(len.W)        
-    val csrnum      = 9.U(len.W)        
-    val rdcntid     = 10.U(len.W)        
-    val counterl    = 11.U(len.W)            
-    val counterh    = 12.U(len.W)            
+    val ui5         = 2.U(len.W)    
+    val si12        = 3.U(len.W)        
+    val si12u       = 4.U(len.W)        
+    val si20        = 5.U(len.W)        
+    val of16        = 6.U(len.W)        
+    val of26        = 7.U(len.W)        
+    val csrnum      = 8.U(len.W)        
+    val rdcntid     = 9.U(len.W)        
+    val counterl    = 10.U(len.W)            
+    val counterh    = 11.U(len.W)            
 }
 
 object CSR {
