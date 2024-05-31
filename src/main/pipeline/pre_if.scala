@@ -14,29 +14,31 @@ class PreIF extends Module {
         val rain        = Input(Bool())
     })
 
-    val pf_ready   := io.ram.addr_ok
+    val req         = RegNext(io.ram.req)
+    val to_pf_valid = RegNext(!reset.asBool)
+    val pf_ready    = io.ram.addr_ok && req
     val pc          = RegInit("h1bfffffc".asUInt(pc_len.W))
     val br_flag     = RegInit(false.B)
-    val br_target   = RegInit(0.U(32.W))
+    val br_target   = RegInit(0.U(pc_len.W))
     val next_pc     = MuxCase(pc + 4.U, Seq(
-        io.br_flag  -> io.br_target
+        io.br.flag  -> io.br.target,
         br_flag     -> br_target
     ))
 
-    when (io.br_flag) {
+    when (io.br.flag) {
         br_flag    := true.B
-        br_target  := io.br_target
+        br_target  := io.br.target
     }
 
     io.ram.wr      := 0.U
     io.ram.size    := 2.U
-    io.ram.req     := !pf_ready && io.fs_allowin && !io.rain
+    io.ram.req     := to_pf_valid && !pf_ready && io.fs_allowin && !io.rain
     io.ram.addr    := next_pc
 
     io.to_fs_valid    := pf_ready
     io.to_fs.pc       := next_pc
 
-    when (pf_ready && io.fs_allowin && !io.br_flag) {
+    when (to_pf_valid && pf_ready && io.fs_allowin && !io.br.flag) {
         pc        := next_pc
         br_flag   := false.B
         br_target := 0.U

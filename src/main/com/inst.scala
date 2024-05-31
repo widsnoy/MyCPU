@@ -1,6 +1,7 @@
 package inst
 
 import chisel3._
+import chisel3.util._
 
 object inst {
     val add_w       = BitPat("b00000000000100000???????????????")

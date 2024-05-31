@@ -13,7 +13,7 @@ object R {
 
 object func {
     val len     =  6
-    val null    =  0.U(len.W)
+    val noth    =  0.U(len.W)
     val add     =  1.U(len.W)
     val sub     =  2.U(len.W)
     val and     =  3.U(len.W)
@@ -27,10 +27,10 @@ object func {
     val sltu    =  11.U(len.W)
     val lu12i   =  12.U(len.W)
     val jirl    =  13.U(len.W)
-    val br_b    =  14.U(len.W)
-    val br_bl   =  15.U(len.W)
-    val br_beq  =  16.U(len.W)
-    val br_bne  =  17.U(len.W)
+    val b       =  14.U(len.W)
+    val bl      =  15.U(len.W)
+    val beq     =  16.U(len.W)
+    val bne     =  17.U(len.W)
     val load    =  18.U(len.W)
     val store   =  19.U(len.W)
     val mulh    =  20.U(len.W)
@@ -40,10 +40,10 @@ object func {
     val div_uns =  24.U(len.W)
     val mod_sig =  25.U(len.W)
     val mod_uns =  26.U(len.W)
-    val br_blt  =  27.U(len.W)
-    val br_bltu =  28.U(len.W)
-    val br_bge  =  29.U(len.W)
-    val br_bgeu =  30.U(len.W)
+    val blt     =  27.U(len.W)
+    val bltu    =  28.U(len.W)
+    val bge     =  29.U(len.W)
+    val bgeu    =  30.U(len.W)
     val csrrd   =  31.U(len.W)
     val csrwr   =  32.U(len.W)
     val csrxchg =  33.U(len.W)
@@ -54,14 +54,14 @@ object func {
 
 object op1 {
     val len  = 2
-    val null = 0.U(len.W)
+    val noth = 0.U(len.W)
     val pc   = 1.U(len.W)
     val rj   = 2.U(len.W)
 }
 
 object op2 {
     val len         = 4
-    val null        = 0.U(len.W)
+    val noth        = 0.U(len.W)
     val rk          = 1.U(len.W)
     val ui5         = 2.U(len.W)    
     val si12        = 3.U(len.W)        

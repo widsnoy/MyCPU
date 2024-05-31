@@ -6,14 +6,14 @@ import const.R._
 
 class IF extends Module {
     val io = IO(new Bundle {
-        val ram         = new fs_ram()
+        val ram         = new ioport.fs_ram()
         val fr_pf_valid = Input(Bool())
         val fr_pf       = Input(new ioport.to_fs_bus())
         val yuki        = Output(Bool())
         val fs_allowin  = Output(Bool())
 
         val to_ds_valid = Output(Bool())
-        val to_ds       = new to_ds_bus()
+        val to_ds       = new ioport.to_ds_bus()
         val ds_allowin  = Input(Bool())
         val rain        = Input(Bool())
     })
@@ -49,5 +49,5 @@ class IF extends Module {
 
     io.to_ds_valid  := fs_valid && fs_ready && !io.rain
     io.to_ds.pc     := fs_bus.pc
-    io.to_ds.inst   := fs_bus.inst
+    io.to_ds.inst   := Mux(ram_data_ok, ram_rdata, io.ram.rdata)
 }

@@ -9,6 +9,7 @@ verilog:
 	$(call git_commit, "generate verilog")
 	rm -f $(BUILD_DIR)/widsnoy_cpu.sv
 	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR)
+	cp $(BUILD_DIR)/* /home/widsnoy/Loongson/cdp_ede_local/mycpu_env/myCPU/
 
 help:
 	mill -i $(PRJ).runMain Elaborate --help
