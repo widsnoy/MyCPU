@@ -12,16 +12,17 @@ class inst_sram_slave extends Module {
         val axi = new ioport.inst_sram_slave_axi
     })
 
-    val araddr  = RegInit(0.U(data_len.W))
-    val arsize  = RegInit(0.U(3.W))
-    val arvalid = RegInit(false.B)
-    val rready  = RegInit(false.B)
+    val araddr     = RegInit(0.U(data_len.W))
+    val arsize     = RegInit(0.U(3.W))
+    val arvalid    = RegInit(false.B)
+    val rready     = RegInit(false.B)
+    val pf_addr_ok = RegInit(false.B)
 
     io.axi.araddr   <> araddr
     io.axi.arsize   <> arsize
     io.axi.arvalid  <> arvalid
     io.axi.rready   <> rready
-    io.pf.addr_ok   := io.axi.arready
+    io.pf.addr_ok   := pf_addr_ok
     io.fs.data_ok   := io.axi.rvalid
     io.fs.rdata     := io.axi.rdata
 
@@ -31,13 +32,15 @@ class inst_sram_slave extends Module {
     switch (state) {
         is (idle) {
             when (io.pf.req) {
-                arvalid := true.B
-                araddr  := io.pf.addr
-                arsize  := io.pf.size
-                state   := raddr
+                arvalid    := true.B
+                araddr     := io.pf.addr
+                arsize     := io.pf.size
+                state      := raddr
+                pf_addr_ok := true.B
             }
         }
         is (raddr) {
+            pf_addr_ok := false.B
             when (io.axi.arready) {
                 arvalid := false.B
                 rready  := true.B

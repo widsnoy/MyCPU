@@ -46,6 +46,7 @@ class data_sram_slave extends Module {
                 araddr  := io.es.addr
                 arsize  := io.es.size
                 awvalid := io.es.wr
+                awaddr  := io.es.addr
                 awsize  := io.es.size
                 wvalid  := io.es.wr
                 wdata   := io.es.wdata
@@ -102,7 +103,7 @@ class data_sram_slave extends Module {
         }
     }
 
-    io.es.addr_ok  := (state === raddr && io.axi.arready) || (state === waddr && io.axi.wready && io.axi.awready) || (state === www1 && io.axi.wready) || (state === www2 && io.axi.awready)
+    io.es.addr_ok  := state === raddr || state === waddr
     io.ms.data_ok  := (state === rdata && io.axi.rvalid) || (state === www3 && io.axi.bvalid)
     io.ms.rdata    := io.axi.rdata
 }
