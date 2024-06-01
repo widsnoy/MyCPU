@@ -14,9 +14,8 @@ class PreIF extends Module {
         val rain        = Input(Bool())
     })
 
-    val req         = RegNext(io.ram.req)
     val to_pf_valid = RegNext(!reset.asBool)
-    val pf_ready    = io.ram.addr_ok && req
+    val pf_ready    = io.ram.addr_ok
     val pc          = RegInit("h1bfffffc".asUInt(pc_len.W))
     val br_flag     = RegInit(false.B)
     val br_target   = RegInit(0.U(pc_len.W))
@@ -31,7 +30,7 @@ class PreIF extends Module {
     }
 
     io.ram.wr      := 0.U
-    io.ram.size    := 2.U
+    io.ram.size    := 4.U
     io.ram.req     := to_pf_valid && !pf_ready && io.fs_allowin && !io.rain
     io.ram.addr    := next_pc
 

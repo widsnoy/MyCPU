@@ -22,7 +22,7 @@ class ws_reg extends Bundle {
 class pf_ram extends Bundle {
     val req     = Output(Bool())
     val wr      = Output(Bool())
-    val size    = Output(UInt(2.W))
+    val size    = Output(UInt(3.W))
     val addr    = Output(UInt(addr_len.W))
     val addr_ok = Input(Bool())
 }
@@ -30,10 +30,20 @@ class fs_ram extends Bundle {
     val data_ok = Input(Bool())
     val rdata   = Input(UInt(data_len.W))
 }
+class inst_sram_slave_axi extends Bundle {
+    val araddr  = Output(UInt(data_len.W))
+    val arsize  = Output(UInt(3.W))
+    val arvalid = Output(Bool())
+    val arready = Input(Bool())
+    val rready  = Output(Bool())
+    val rdata   = Input(UInt(data_len.W))
+    val rvalid  = Input(Bool())
+}
+
 class es_ram extends Bundle {
     val req     = Output(Bool())
     val wr      = Output(Bool())
-    val size    = Output(UInt(2.W))
+    val size    = Output(UInt(3.W))
     val addr    = Output(UInt(addr_len.W))
     val wstrb   = Output(UInt(4.W))
     val wdata   = Output(UInt(data_len.W))
@@ -43,6 +53,64 @@ class ms_ram extends Bundle {
     val data_ok = Input(Bool())
     val rdata   = Input(UInt(data_len.W))
 }
+class data_sram_slave_axi extends Bundle {
+    val araddr  = Output(UInt(data_len.W))
+    val arsize  = Output(UInt(3.W))
+    val arvalid = Output(Bool())
+    val arready = Input(Bool())
+    val awaddr  = Output(UInt(data_len.W))
+    val awsize  = Output(UInt(3.W))
+    val awvalid = Output(Bool())
+    val awready = Input(Bool())
+    val rready  = Output(Bool())
+    val rdata   = Input(UInt(data_len.W))
+    val rvalid  = Input(Bool())
+    val wdata   = Output(UInt(data_len.W))
+    val wstrb   = Output(UInt(4.W))
+    val wvalid  = Output(Bool())
+    val wready  = Input(Bool())
+    val bvalid  = Input(Bool())
+    val bready  = Output(Bool())
+}
+class axi_interface extends Bundle {
+    val arid    = Output(UInt(4.W))
+    val araddr  = Output(UInt(data_len.W))
+    val arlen   = Output(UInt(8.W))
+    val arsize  = Output(UInt(3.W))
+    val arburst = Output(UInt(2.W))
+    val arlock  = Output(UInt(2.W))
+    val arcache = Output(UInt(4.W))
+    val arprot  = Output(UInt(3.W))
+    val arvalid = Output(Bool())
+    val arready = Input(Bool())
+
+    val rid     = Input(UInt(4.W))
+    val rready  = Output(Bool())
+    val rdata   = Input(UInt(data_len.W))
+    val rvalid  = Input(Bool())
+
+    val awid    = Output(UInt(4.W))
+    val awaddr  = Output(UInt(data_len.W))
+    val awlen   = Output(UInt(8.W))
+    val awsize  = Output(UInt(3.W))
+    val awburst = Output(UInt(2.W))
+    val awlock  = Output(UInt(2.W))
+    val awcache = Output(UInt(4.W))
+    val awprot  = Output(UInt(3.W))
+    val awvalid = Output(Bool())
+    val awready = Input(Bool())
+    
+    val wid     = Output(UInt(4.W))
+    val wdata   = Output(UInt(data_len.W))
+    val wstrb   = Output(UInt(4.W))
+    val wlast   = Output(Bool())
+    val wvalid  = Output(Bool())
+    val wready  = Input(Bool())
+
+    val bvalid  = Input(Bool())
+    val bready  = Output(Bool())
+}
+
 class branch extends Bundle {
     val flag   = Output(Bool())
     val target = Output(UInt(pc_len.W))

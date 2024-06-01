@@ -20,7 +20,7 @@ class MEM extends Module {
 
     val momo        = RegInit(0.U.asTypeOf(new ioport.to_ms_bus()))
     val ms_valid    = RegInit(false.B)
-    val ms_ready    = momo.funct =/= func.load || io.ram.data_ok
+    val ms_ready    = !ms_valid || ((!momo.funct === func.store || momo.funct === func.load) || io.ram.data_ok)
     val ms_allowin  = !ms_valid || (ms_ready && io.ws_allowin)
     when (ms_allowin) {
         ms_valid := io.fr_es_valid

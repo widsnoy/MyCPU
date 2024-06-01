@@ -22,8 +22,7 @@ class EX extends Module {
     
     val emo         = RegInit(0.U.asTypeOf(new ioport.to_es_bus()))
     val es_valid    = RegInit(false.B)
-    val req         = RegNext(io.ram.req)
-    val es_ready    = (!(emo.funct === func.store || emo.funct === func.load) || (io.ram.addr_ok && req)) // mul division
+    val es_ready    = !es_valid || (!(emo.funct === func.store || emo.funct === func.load) || io.ram.addr_ok) // mul division
     val es_allowin  = !es_valid || (es_ready && io.ms_allowin)
 
     when (es_allowin) {
@@ -87,7 +86,7 @@ class EX extends Module {
     io.ram.req   := es_valid && (emo.funct === func.store || emo.funct === func.load) && io.ms_allowin
     io.ram.wr    := emo.funct === func.store
     io.ram.addr  := sum_t
-    io.ram.size  := Mux(emo.w_tp(1, 0) === 0.U, 2.U, (emo.w_tp(1, 0) >> (1.U))(1, 0).asUInt)
+    io.ram.size  := Mux(emo.w_tp(1, 0) === 0.U, 4.U(3.W), 0.U(1.W) ## emo.w_tp(1, 0))
     io.ram.wstrb := MuxCase("b1111".U(4.W), Seq(
         (emo.w_tp === 2.U) -> wstrb_h,
         (emo.w_tp === 1.U) -> wstrb_b
