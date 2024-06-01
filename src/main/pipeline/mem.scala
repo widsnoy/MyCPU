@@ -12,6 +12,7 @@ class MEM extends Module {
         val fr_es_valid = Input(Bool())
         val fr_es       = Input(new ioport.to_ms_bus())
         val ms_allowin  = Output(Bool())
+        val bypass      = new ioport.bypass()
 
         val to_ws_valid = Output(Bool())
         val to_ws       = Output(new ioport.to_ws_bus())
@@ -45,11 +46,16 @@ class MEM extends Module {
         (momo.w_tp === 2.U) -> rdata_h
     ))
 
-    io.ms_allowin  := ms_allowin
+    io.ms_allowin   := ms_allowin
 
-    io.to_ws_valid := ms_valid && ms_ready
-    io.to_ws.pc    := momo.pc
-    io.to_ws.w_tp  := momo.w_tp
-    io.to_ws.res   := Mux(momo.funct === func.load, real_dat, momo.res)
-    io.to_ws.dest  := momo.dest
+    io.to_ws_valid  := ms_valid && ms_ready
+    io.to_ws.pc     := momo.pc
+    io.to_ws.w_tp   := momo.w_tp
+    io.to_ws.res    := Mux(momo.funct === func.load, real_dat, momo.res)
+    io.to_ws.dest   := momo.dest
+
+    io.bypass.valid := ms_valid && momo.w_tp(4).asBool
+    io.bypass.stall := momo.funct =/= func.load || ms_ready
+    io.bypass.dest  := momo.dest
+    io.bypass.value := Mux(momo.funct === func.load, real_dat, momo.res)
 }

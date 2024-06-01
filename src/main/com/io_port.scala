@@ -153,3 +153,18 @@ class debug_interface extends Bundle {
     val wb_rf_wnum  = UInt(reg_addr.W)
     val wb_rf_wdata = UInt(data_len.W)
 }
+class bypass extends Bundle {
+    val valid   = Output(Bool())
+    val stall   = Output(Bool())
+    val dest    = Output(UInt(reg_addr.W))
+    val value   = Output(UInt(data_len.W))
+}
+
+class calc_interface extends Bundle {
+    val en      = Input(Bool())
+    val signed  = Input(Bool())
+    val op1     = Input(UInt(32.W))
+    val op2     = Input(UInt(32.W))
+    val result  = Output(UInt(64.W))
+    val ready   = Output(Bool())
+}

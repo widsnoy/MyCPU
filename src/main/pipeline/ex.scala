@@ -14,15 +14,21 @@ class EX extends Module {
         val fr_ds       = Input(new ioport.to_es_bus())
         val yuki        = Output(Bool())
         val es_allowin  = Output(Bool())
+        val bypass      = new ioport.bypass()
 
         val to_ms_valid = Output(Bool())
         val to_ms       = Output(new ioport.to_ms_bus())
         val ms_allowin  = Input(Bool())
+
+        val mul         = Flipped(new ioport.calc_interface())
+        val div         = Flipped(new ioport.calc_interface())
     })
     
+    val mul_ready   = RegInit(false.B)
+    val div_ready   = 
     val emo         = RegInit(0.U.asTypeOf(new ioport.to_es_bus()))
     val es_valid    = RegInit(false.B)
-    val es_ready    = !es_valid || (!(emo.funct === func.store || emo.funct === func.load) || io.ram.addr_ok) // mul division
+    val es_ready    = !es_valid || ((!(emo.funct === func.store || emo.funct === func.load) || io.ram.addr_ok) && (!div.en || div.ready) && (!mul.en || mul.ready))
     val es_allowin  = !es_valid || (es_ready && io.ms_allowin)
 
     when (es_allowin) {
@@ -47,19 +53,40 @@ class EX extends Module {
     val sra_t     = (emo.op1.asSInt >> emo.op2(4, 0))(31, 0).asUInt
     val br_t      = emo.pc + 4.U(pc_len.W)
 
+    div.en        := ((emo.funct === func.mod_sig) || (emo.funct === func.mod_uns) || (emo.funct === func.div_uns) || (emo.funct === func.div_sig))
+    div.signed    := ((emo.funct === func.mod_sig) || (emo.funct === func.div_sig))
+    div.op1       := emo.op1
+    div.op2       := emo.op2
+    val div_emo    = div.result
+
+    mul.en        := ((emo.funct === func.mulh) || (emo.funct === func.mull) || (emo.funct === func.mulhu))
+    mul.signed    := (emo.funct =/= func.mulhu)
+    mul.op1       := emo.op1
+    mul.op2       := emo.op2
+    val mul_emo    = mul.result
+
+    val rem     = div_emo(31, 0)
+    val div     = div_emo(63, 32)
+    val mull    = mul_emo(31, 0)
+    val mulh    = mul_emo(63, 32)
+
     val alu_out = MuxCase(sum_t, Seq(
-        (emo.funct === func.sub)   -> sub_t ,
-        (emo.funct === func.slt)   -> slt_t ,
-        (emo.funct === func.sltu)  -> sltu_t,
-        (emo.funct === func.nor)   -> nor_t ,
-        (emo.funct === func.and)   -> and_t ,   
-        (emo.funct === func.or)    -> or_t  ,
-        (emo.funct === func.xor)   -> xor_t ,
-        (emo.funct === func.sll)   -> sll_t ,
-        (emo.funct === func.srl)   -> srl_t ,
-        (emo.funct === func.sra)   -> sra_t ,
-        (emo.funct === func.jirl)  -> br_t  ,
-        (emo.funct === func.bl)    -> br_t
+        (emo.funct === func.sub)       -> sub_t ,
+        (emo.funct === func.slt)       -> slt_t ,
+        (emo.funct === func.sltu)      -> sltu_t,
+        (emo.funct === func.nor)       -> nor_t ,
+        (emo.funct === func.and)       -> and_t ,   
+        (emo.funct === func.or)        -> or_t  ,
+        (emo.funct === func.xor)       -> xor_t ,
+        (emo.funct === func.sll)       -> sll_t ,
+        (emo.funct === func.srl)       -> srl_t ,
+        (emo.funct === func.sra)       -> sra_t ,
+        (emo.funct === func.jirl)      -> br_t  ,
+        (emo.funct === func.bl)        -> br_t  ,
+        (emo.funct === func.mulh || emo.funct === func.mulhu) -> mulh,
+        (emo.funct === func.mull)      -> mull  ,
+        (emo.funct === func.div_sig || emo.funct === func.div_uns) -> div,
+        (emo.funct === func.mod_sig || emo.funct === func.mod_uns) -> rem
     ))
 
     // branch
@@ -105,4 +132,9 @@ class EX extends Module {
     io.to_ms.mod4  := mod4
     io.to_ms.res   := alu_out
     io.to_ms.dest  := emo.dest
+
+    io.bypass.valid   := es_valid && emo.w_tp(4).asBool
+    io.bypass.stall   := emo.funct =/= func.load
+    io.bypass.dest    := emo.dest
+    io.bypass.value   := alu_out
 }

@@ -47,6 +47,9 @@ class widsnoy_cpu extends Module {
     ds.es_allowin   <> es.es_allowin
     ds.rain         <> es.yuki
     ds.reg          <> reg.ds
+    ds.es_bypass    <> es.bypass    
+    ds.ms_bypass    <> ms.bypass
+    ds.ws_bypass    <> ws.bypass
 
     es.ram          <> data_sram.es
     es.to_ms_valid  <> ms.fr_es_valid

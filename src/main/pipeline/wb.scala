@@ -12,6 +12,7 @@ class WB extends Module {
         val fr_ms_valid = Input(Bool())
         val fr_ms       = Input(new ioport.to_ws_bus())
         val ws_allowin  = Output(Bool())
+        val bypass      = new ioport.bypass()
 
         val reg         = Flipped(new ioport.ws_reg())
     })
@@ -36,4 +37,9 @@ class WB extends Module {
     io.debug.wb_rf_wen   := Fill(4, www.w_tp(4) & ws_valid.asUInt)
     io.debug.wb_rf_wnum  := www.dest
     io.debug.wb_rf_wdata := www.res
+
+    io.bypass.valid := ws_valid && www.w_tp(4).asBool
+    io.bypass.stall := true.B
+    io.bypass.dest  := www.dest
+    io.bypass.value := www.res
 }

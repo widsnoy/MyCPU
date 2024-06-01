@@ -22,14 +22,31 @@ class ID extends Module {
         val reg         = Flipped(new ioport.ds_reg())
 
         // bypass
-
+        val es_bypass   = Flipped(new ioport.bypass())
+        val ms_bypass   = Flipped(new ioport.bypass())
+        val ws_bypass   = Flipped(new ioport.bypass())
     })
 
-    val ds_valid    = RegInit(false.B)
-    val ds_ready    = true.B
-    val ds_allowin  = !ds_valid || (ds_ready && io.es_allowin)
-    val ds_bus      = RegInit(0.U.asTypeOf(new ioport.to_ds_bus()))
+    def ffstop(dest: UInt): Bool = {
+        return (io.es_bypass.valid && io.es_bypass.dest === dest && !io.es_bypass.stall) || (io.ms_bypass.valid && io.ms_bypass.dest === dest && !io.ms_bypass.stall)
+    }
+    def foword(dest: UInt, ini: UInt): UInt = {
+        return MuxCase(ini, Seq(
+            (io.es_bypass.valid && io.es_bypass.dest === dest) -> io.es_bypass.value,
+            (io.ms_bypass.valid && io.ms_bypass.dest === dest) -> io.ms_bypass.value,
+            (io.ws_bypass.valid && io.ws_bypass.dest === dest) -> io.ws_bypass.value
+        ))
+    }
 
+    val ds_bus      = RegInit(0.U.asTypeOf(new ioport.to_ds_bus()))
+    val rd          = ds_bus.inst(4, 0)
+    val rj          = ds_bus.inst(9, 5)
+    val rk          = ds_bus.inst(14, 10)
+
+    val ds_valid    = RegInit(false.B)
+    val ds_ready    = !ffstop(rj) && !ffstop(rk) && !ffstop(rd)
+    val ds_allowin  = !ds_valid || (ds_ready && io.es_allowin)
+    
     when (io.rain) {
         ds_valid    := false.B
     }.elsewhen (ds_allowin) {
@@ -37,23 +54,12 @@ class ID extends Module {
         ds_bus      := io.fr_fs
     }
 
-    def get_reg(dest: UInt, ini: UInt): UInt = {
-        return ini
-        // return MuxCase(ini, Seq(
-        //     (io.wr_EX.valid && (io.wr_EX.dest === dest)) -> io.wr_EX.wdata,
-        //     (io.wr_MEM.valid && (io.wr_MEM.dest === dest)) -> io.wr_MEM.wdata,
-        //     (io.wr_WB.valid && (io.wr_WB.dest === dest)) -> io.wr_WB.wdata
-        // ))
-    }
-    val rd       = ds_bus.inst(4, 0)
-    val rj       = ds_bus.inst(9, 5)
-    val rk       = ds_bus.inst(14, 10)
     io.reg.rr1   := rj
     io.reg.rr2   := rk
     io.reg.rr3   := rd
-    val rj_data  = get_reg(rj, io.reg.rd1)
-    val rk_data  = get_reg(rk, io.reg.rd2)
-    val rd_data  = get_reg(rd, io.reg.rd3)
+    val rj_data  = foword(rj, io.reg.rd1)
+    val rk_data  = foword(rk, io.reg.rd2)
+    val rd_data  = foword(rd, io.reg.rd3)
 
     val ui5     = ds_bus.inst(14, 10)
     val si12    = Cat(Fill(20, ds_bus.inst(21)), ds_bus.inst(21, 10))
