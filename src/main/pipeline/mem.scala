@@ -42,8 +42,8 @@ class MEM extends Module {
     val rdata_h  = Cat(Fill(16, hi_h), Mux(momo.mod4 === 0.U, rdata(15, 0), rdata(31, 16)))
 
     val real_dat = MuxCase(rdata, Seq(
-        (momo.w_tp === 1.U) -> rdata_b,
-        (momo.w_tp === 2.U) -> rdata_h
+        (momo.w_tp(1, 0) === 1.U) -> rdata_b,
+        (momo.w_tp(1, 0) === 2.U) -> rdata_h
     ))
 
     io.ms_allowin   := ms_allowin

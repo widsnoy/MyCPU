@@ -6,6 +6,7 @@ import pipeline._
 import regfile._
 import ioport._
 import axi._
+import calc._
 
 class widsnoy_cpu extends Module {
     val io = IO(new Bundle {
@@ -28,7 +29,9 @@ class widsnoy_cpu extends Module {
     val ms  = Module(new MEM()).io
     val ws  = Module(new WB()).io
     val reg = Module(new Regfile()).io
-    
+    val mul = Module(new multiplier()).io
+    val div = Module(new divider()).io
+
     pf.ram          <> inst_sram.pf
     pf.br           <> es.br
     pf.to_fs        <> fs.fr_pf
@@ -55,6 +58,8 @@ class widsnoy_cpu extends Module {
     es.to_ms_valid  <> ms.fr_es_valid
     es.to_ms        <> ms.fr_es
     es.ms_allowin   <> ms.ms_allowin
+    es.mul          <> mul.yu
+    es.div          <> div.yu
 
     ms.ram          <> data_sram.ms
     ms.to_ws_valid  <> ws.fr_ms_valid

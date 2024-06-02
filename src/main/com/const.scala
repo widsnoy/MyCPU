@@ -3,7 +3,7 @@ package const
 import chisel3._
 
 object R {
-    val vivado_build = false
+    val vivado_build = true
     val data_len     = 32
     val addr_len     = 32
     val pc_len       = 32

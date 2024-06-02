@@ -24,16 +24,20 @@ class EX extends Module {
         val div         = Flipped(new ioport.calc_interface())
     })
     
-    val mul_ready   = RegInit(false.B)
-    val div_ready   = 
+    val div_rvalid = RegInit(false.B)
+    val div_rdata  = RegInit(0.U(64.W))
+    val mul_rvalid = RegInit(false.B)
+    val mul_rdata  = RegInit(0.U(64.W))
     val emo         = RegInit(0.U.asTypeOf(new ioport.to_es_bus()))
     val es_valid    = RegInit(false.B)
-    val es_ready    = !es_valid || ((!(emo.funct === func.store || emo.funct === func.load) || io.ram.addr_ok) && (!div.en || div.ready) && (!mul.en || mul.ready))
+    val es_ready    = !es_valid || ((!(emo.funct === func.store || emo.funct === func.load) || io.ram.addr_ok) && (!io.div.en || io.div.ready || div_rvalid) && (!io.mul.en || io.mul.ready || mul_rvalid))
     val es_allowin  = !es_valid || (es_ready && io.ms_allowin)
 
     when (es_allowin) {
-        es_valid := io.fr_ds_valid 
-        emo   := io.fr_ds
+        es_valid    := io.fr_ds_valid 
+        emo         := io.fr_ds
+        div_rvalid  := false.B
+        mul_rvalid  := false.B
     }
     // 如果保证所有冲刷流水线的操作都不在
     // mem, wb
@@ -53,17 +57,26 @@ class EX extends Module {
     val sra_t     = (emo.op1.asSInt >> emo.op2(4, 0))(31, 0).asUInt
     val br_t      = emo.pc + 4.U(pc_len.W)
 
-    div.en        := ((emo.funct === func.mod_sig) || (emo.funct === func.mod_uns) || (emo.funct === func.div_uns) || (emo.funct === func.div_sig))
-    div.signed    := ((emo.funct === func.mod_sig) || (emo.funct === func.div_sig))
-    div.op1       := emo.op1
-    div.op2       := emo.op2
-    val div_emo    = div.result
 
-    mul.en        := ((emo.funct === func.mulh) || (emo.funct === func.mull) || (emo.funct === func.mulhu))
-    mul.signed    := (emo.funct =/= func.mulhu)
-    mul.op1       := emo.op1
-    mul.op2       := emo.op2
-    val mul_emo    = mul.result
+    io.div.en        := ((emo.funct === func.mod_sig) || (emo.funct === func.mod_uns) || (emo.funct === func.div_uns) || (emo.funct === func.div_sig))
+    io.div.signed    := ((emo.funct === func.mod_sig) || (emo.funct === func.div_sig))
+    io.div.op1       := emo.op1
+    io.div.op2       := emo.op2
+    when (io.div.ready) {
+        div_rvalid := true.B
+        div_rdata  := io.div.result
+    }
+    val div_emo    = Mux(io.div.ready, io.div.result, div_rdata)
+
+    io.mul.en        := ((emo.funct === func.mulh) || (emo.funct === func.mull) || (emo.funct === func.mulhu))
+    io.mul.signed    := (emo.funct =/= func.mulhu)
+    io.mul.op1       := emo.op1
+    io.mul.op2       := emo.op2
+    when (io.mul.ready) {
+        mul_rvalid := true.B
+        mul_rdata  := io.mul.result
+    }
+    val mul_emo    = Mux(io.mul.ready, io.mul.result, mul_rdata)
 
     val rem     = div_emo(31, 0)
     val div     = div_emo(63, 32)

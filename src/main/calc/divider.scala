@@ -2,6 +2,7 @@ package calc
 
 import chisel3._
 import chisel3.util._
+import const.R._
 
 class SignedDiv extends BlackBox with HasBlackBoxResource {
   val io = IO(new Bundle {
@@ -37,7 +38,7 @@ class UnsignedDiv extends BlackBox with HasBlackBoxResource {
   })
 }
 
-class DIV extends Module {
+class divider extends Module {
     val divClockNum = 8
     val io = IO(new Bundle {
         val yu = new ioport.calc_interface()

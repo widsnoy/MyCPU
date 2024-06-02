@@ -2,6 +2,7 @@ package calc
 
 import chisel3._
 import chisel3.util._
+import const.R._
 
 class SignedMul extends BlackBox with HasBlackBoxResource {
     val io = IO(new Bundle {
@@ -13,7 +14,7 @@ class SignedMul extends BlackBox with HasBlackBoxResource {
     })
 }
 
-class MUL extends Module {
+class multiplier extends Module {
     val mulClockNum = 2
     val io = IO(new Bundle {
         val yu = new ioport.calc_interface()
