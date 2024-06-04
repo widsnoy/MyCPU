@@ -23,6 +23,7 @@ class data_sram_slave extends Module {
     val wstrb      = RegInit(0.U(4.W))
     val wvalid     = RegInit(false.B)
     val bready     = RegInit(false.B)
+    val es_addr_ok = RegInit(false.B)
 
     io.axi.araddr  <> araddr 
     io.axi.arsize  <> arsize
@@ -42,19 +43,21 @@ class data_sram_slave extends Module {
     switch (state) {
         is (idle) {
             when (io.es.req) {
-                arvalid := !io.es.wr
-                araddr  := io.es.addr
-                arsize  := io.es.size
-                awvalid := io.es.wr
-                awaddr  := io.es.addr
-                awsize  := io.es.size
-                wvalid  := io.es.wr
-                wdata   := io.es.wdata
-                wstrb   := io.es.wstrb
-                state   := Mux(io.es.wr, waddr, raddr)
+                arvalid    := !io.es.wr
+                araddr     := io.es.addr
+                arsize     := io.es.size
+                awvalid    := io.es.wr
+                awaddr     := io.es.addr
+                awsize     := io.es.size
+                wvalid     := io.es.wr
+                wdata      := io.es.wdata
+                wstrb      := io.es.wstrb
+                es_addr_ok := true.B
+                state      := Mux(io.es.wr, waddr, raddr)
             }
         }
         is (raddr) {
+            es_addr_ok := false.B
             when (io.axi.arready) {
                 arvalid := false.B
                 rready  := true.B
@@ -68,6 +71,7 @@ class data_sram_slave extends Module {
             }
         }
         is (waddr) {
+            es_addr_ok := false.B
             when (io.axi.wready && io.axi.awready) {
                 awvalid := false.B
                 wvalid  := false.B
@@ -103,7 +107,7 @@ class data_sram_slave extends Module {
         }
     }
 
-    io.es.addr_ok  := state === raddr || state === waddr
+    io.es.addr_ok  := es_addr_ok
     io.ms.data_ok  := (state === rdata && io.axi.rvalid) || (state === www3 && io.axi.bvalid)
     io.ms.rdata    := io.axi.rdata
 }
