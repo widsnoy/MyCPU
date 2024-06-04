@@ -14,7 +14,7 @@ class WB extends Module {
         val ws_allowin  = Output(Bool())
         val bypass      = new ioport.bypass()
 
-        val reg         = Flipped(new ioport.ws_reg())
+        val gpr         = Flipped(new ioport.ws_gpr())
     })
 
     val www        = RegInit(0.U.asTypeOf(new ioport.to_ws_bus))
@@ -27,9 +27,9 @@ class WB extends Module {
         www      := io.fr_ms
     }
 
-    io.reg.wen   := ws_valid && www.w_tp(4).asBool
-    io.reg.wr    := www.dest
-    io.reg.wd    := www.res
+    io.gpr.wen   := ws_valid && www.w_tp(4).asBool
+    io.gpr.wr    := www.dest
+    io.gpr.wd    := www.res
 
     io.ws_allowin := ws_allowin
 

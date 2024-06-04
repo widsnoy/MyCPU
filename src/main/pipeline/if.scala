@@ -20,11 +20,11 @@ class IF extends Module {
 
     val ram_data_ok = RegInit(false.B)
     val ram_rdata   = RegInit(0.U(data_len.W))
-    val throw_data  = RegInit(false.B)     // 中断例外，跳转分支，都在 EXE 级处理，保证至多丢弃一次数据
-    val fs_valid    = RegInit(false.B)
-    val fs_ready    = (io.ram.data_ok || ram_data_ok) && !throw_data
-    val fs_allowin  = !fs_valid || (fs_ready && io.ds_allowin)
     val fs_bus      = RegInit(0.U.asTypeOf(new ioport.to_fs_bus())) 
+    val throw_data  = RegInit(false.B)
+    val fs_valid    = RegInit(false.B)
+    val fs_ready    = fs_bus.evalid || (io.ram.data_ok || ram_data_ok) && !throw_data
+    val fs_allowin  = !fs_valid || (fs_ready && io.ds_allowin)
 
     when (io.rain) {
         throw_data  := io.fr_pf_valid || (!fs_allowin && !fs_ready)
@@ -50,4 +50,6 @@ class IF extends Module {
     io.to_ds_valid  := fs_valid && fs_ready && !io.rain
     io.to_ds.pc     := fs_bus.pc
     io.to_ds.inst   := Mux(ram_data_ok, ram_rdata, io.ram.rdata)
+    io.to_ds.evalid := fs_bus.evalid
+    io.to_ds.ecode  := fs_bus.ecode
 }

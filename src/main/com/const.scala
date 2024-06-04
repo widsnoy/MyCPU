@@ -3,12 +3,13 @@ package const
 import chisel3._
 
 object R {
-    val vivado_build = true
+    val vivado_build = false
     val data_len     = 32
     val addr_len     = 32
+    val timer_len    = 20
     val pc_len       = 32
-    val reg_count    = 32
-    val reg_addr     = 5
+    val gpr_count    = 32
+    val gpr_addr     = 5
 }
 
 object func {
@@ -108,7 +109,7 @@ object CSR {
     val DMW1        = 0x181.U(14.W)
 }
 
-object ECodes {
+object ECODE {
     val INT     = 0x00.U(6.W) 
     val PIL     = 0x01.U(6.W)
     val PIS     = 0x02.U(6.W)

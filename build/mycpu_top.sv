@@ -40,7 +40,7 @@ module mycpu_top(
     output wire        bready, 
 
     output wire [31:0] debug_wb_pc,
-    output wire [ 3:0] debug_wb_rf_we,
+    output wire [ 3:0] debug_wb_rf_wen,
     output wire [ 4:0] debug_wb_rf_wnum,
     output wire [31:0] debug_wb_rf_wdata
 
@@ -81,7 +81,7 @@ widsnoy_cpu mycpu(
     .io_axi_bvalid              (bvalid),
     .io_axi_bready              (bready),
     .io_debug_wb_pc             (debug_wb_pc),
-    .io_debug_wb_rf_wen         (debug_wb_rf_we),    
+    .io_debug_wb_rf_wen         (debug_wb_rf_wen),    
     .io_debug_wb_rf_wnum        (debug_wb_rf_wnum),        
     .io_debug_wb_rf_wdata       (debug_wb_rf_wdata)       
 );

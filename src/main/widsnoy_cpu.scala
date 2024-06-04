@@ -3,10 +3,11 @@ package mycpu
 import chisel3._
 import chisel3.util._
 import pipeline._
-import regfile._
+import gpr._
 import ioport._
 import axi._
 import calc._
+import csr._
 
 class widsnoy_cpu extends Module {
     val io = IO(new Bundle {
@@ -28,9 +29,10 @@ class widsnoy_cpu extends Module {
     val es  = Module(new EX()).io
     val ms  = Module(new MEM()).io
     val ws  = Module(new WB()).io
-    val reg = Module(new Regfile()).io
+    val gpr = Module(new GPR()).io
     val mul = Module(new multiplier()).io
     val div = Module(new divider()).io
+    val csr = Module(new CSR()).io
 
     pf.ram          <> inst_sram.pf
     pf.br           <> es.br
@@ -49,10 +51,11 @@ class widsnoy_cpu extends Module {
     ds.to_es        <> es.fr_ds
     ds.es_allowin   <> es.es_allowin
     ds.rain         <> es.yuki
-    ds.reg          <> reg.ds
+    ds.gpr          <> gpr.ds
     ds.es_bypass    <> es.bypass    
     ds.ms_bypass    <> ms.bypass
     ds.ws_bypass    <> ws.bypass
+    ds.csr          <> csr.ds
 
     es.ram          <> data_sram.es
     es.to_ms_valid  <> ms.fr_es_valid
@@ -60,12 +63,13 @@ class widsnoy_cpu extends Module {
     es.ms_allowin   <> ms.ms_allowin
     es.mul          <> mul.yu
     es.div          <> div.yu
+    es.csr          <> csr.csr
 
     ms.ram          <> data_sram.ms
     ms.to_ws_valid  <> ws.fr_ms_valid
     ms.to_ws        <> ws.fr_ms
     ms.ws_allowin   <> ws.ws_allowin
 
-    ws.reg          <> reg.ws
+    ws.gpr          <> gpr.ws
     ws.debug        <> io.debug
 }

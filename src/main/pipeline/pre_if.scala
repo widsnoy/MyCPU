@@ -3,6 +3,7 @@ package pipeline
 import chisel3._
 import chisel3.util._
 import const.R._
+import const._
 
 class PreIF extends Module {
     val io = IO(new Bundle {
@@ -14,6 +15,7 @@ class PreIF extends Module {
         val rain        = Input(Bool())
     })
 
+    val ice         = RegInit(false.B)
     val to_pf_valid = RegNext(!reset.asBool)
     val pf_ready    = io.ram.addr_ok
     val pc          = RegInit("h1bfffffc".asUInt(pc_len.W))
@@ -30,12 +32,14 @@ class PreIF extends Module {
     }
 
     io.ram.wr      := 0.U
-    io.ram.size    := 4.U
-    io.ram.req     := to_pf_valid && !pf_ready && io.fs_allowin && !io.rain
+    io.ram.size    := 2.U
+    io.ram.req     := to_pf_valid && !pf_ready && io.fs_allowin && !io.rain && !io.to_fs.evalid
     io.ram.addr    := next_pc
 
-    io.to_fs_valid    := pf_ready
+    io.to_fs_valid    := pf_ready || io.to_fs.evalid
     io.to_fs.pc       := next_pc
+    io.to_fs.evalid   := next_pc (1, 0) =/= 0.U
+    io.to_fs.ecode    := ECODE.ADEF
 
     when (to_pf_valid && pf_ready && io.fs_allowin && !io.br.flag) {
         pc        := next_pc

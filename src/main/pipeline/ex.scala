@@ -22,8 +22,12 @@ class EX extends Module {
 
         val mul         = Flipped(new ioport.calc_interface())
         val div         = Flipped(new ioport.calc_interface())
-    })
     
+        val csr         = new ioport.csr_interface()
+    }) 
+    
+    val csr_rvalid = RegInit(false.B)
+    val csr_rdata  = RegInit(0.U(data_len.W))
     val div_rvalid = RegInit(false.B)
     val div_rdata  = RegInit(0.U(64.W))
     val mul_rvalid = RegInit(false.B)
@@ -38,11 +42,8 @@ class EX extends Module {
         emo         := io.fr_ds
         div_rvalid  := false.B
         mul_rvalid  := false.B
+        csr_rvalid  := false.B
     }
-    // 如果保证所有冲刷流水线的操作都不在
-    // mem, wb
-    // 就不会有 ex 发出的读写请求被丢弃
-    // 所以处理例外和中断，分支跳转都在 ex 级处理
 
     val sum_t     = emo.op1 + emo.op2
     val sub_t     = emo.op1 - emo.op2
@@ -62,21 +63,21 @@ class EX extends Module {
     io.div.signed    := ((emo.funct === func.mod_sig) || (emo.funct === func.div_sig))
     io.div.op1       := emo.op1
     io.div.op2       := emo.op2
-    when (io.div.ready) {
+    when (io.div.ready && !es_allowin) {
         div_rvalid := true.B
         div_rdata  := io.div.result
     }
-    val div_emo    = Mux(io.div.ready, io.div.result, div_rdata)
+    val div_emo    = Mux(div_rvalid, div_rdata, io.div.result)
 
     io.mul.en        := ((emo.funct === func.mulh) || (emo.funct === func.mull) || (emo.funct === func.mulhu))
     io.mul.signed    := (emo.funct =/= func.mulhu)
     io.mul.op1       := emo.op1
     io.mul.op2       := emo.op2
-    when (io.mul.ready) {
+    when (io.mul.ready && !es_allowin) {
         mul_rvalid := true.B
         mul_rdata  := io.mul.result
     }
-    val mul_emo    = Mux(io.mul.ready, io.mul.result, mul_rdata)
+    val mul_emo    = Mux(mul_rvalid, mul_rdata, io.mul.result)
 
     val rem     = div_emo(31, 0)
     val div     = div_emo(63, 32)
@@ -102,11 +103,20 @@ class EX extends Module {
         (emo.funct === func.mod_sig || emo.funct === func.mod_uns) -> rem
     ))
 
+    val addr_err  = (emo.funct === func.store || emo.funct === func.load) && ((emo.w_tp(1, 0) === 2.U && sum_t(1, 0) =/= 0.U) || (emo.w_tp(1, 0) === 1.U && sum_t(1, 0) =/= 0.U && sum_t(1, 0) =/= 2.U))
+    val evalid    = emo.evalid || addr_err
+    val ecode     = MuxCase(ECODE.NONE, Seq(
+        emo.evalid -> emo.ecode,
+        addr_err  -> ECODE.ALE
+    ))
+
     // branch
     io.br.flag   := es_valid && MuxCase(false.B, Seq(
+        evalid                     -> true.B,
         (emo.funct === func.bl)    -> true.B,
         (emo.funct === func.b)     -> true.B,
         (emo.funct === func.jirl)  -> true.B,
+        (emo.funct === func.ertn)  -> true.B,
         (emo.funct === func.bne)   -> (emo.src1 =/= emo.src3),
         (emo.funct === func.beq)   -> (emo.src1 === emo.src3),
         (emo.funct === func.blt)   -> (emo.src1.asSInt < emo.src3.asSInt),
@@ -114,7 +124,7 @@ class EX extends Module {
         (emo.funct === func.bge)   -> (emo.src1.asSInt >= emo.src3.asSInt),
         (emo.funct === func.bgeu)  -> (emo.src1.asUInt >= emo.src3.asUInt)
     ))
-    io.br.target := sum_t
+    io.br.target := Mux(io.csr.opt =/= 0.U, io.csr.br_target, sum_t)
     io.yuki      := io.br.flag
     
     // load and store
@@ -123,18 +133,25 @@ class EX extends Module {
     val mod4      = alu_out(1, 0)
     val wstrb_h   = Mux(mod4 === 0.U, "b0011".U, "b1100".U)
     val wstrb_b   = (1.U(32.W) << mod4)(3, 0)
-    io.ram.req   := es_valid && (emo.funct === func.store || emo.funct === func.load) && io.ms_allowin
+    io.ram.req   := es_valid && (emo.funct === func.store || emo.funct === func.load) && io.ms_allowin && !addr_err
     io.ram.wr    := emo.funct === func.store
     io.ram.addr  := sum_t
-    io.ram.size  := Mux(emo.w_tp(1, 0) === 0.U, 4.U(3.W), 0.U(1.W) ## emo.w_tp(1, 0))
+    io.ram.size  := 0.U(1.W) ## emo.w_tp(1, 0)
     io.ram.wstrb := MuxCase("b1111".U(4.W), Seq(
-        (emo.w_tp === 2.U) -> wstrb_h,
-        (emo.w_tp === 1.U) -> wstrb_b
+        (emo.w_tp === 1.U) -> wstrb_h,
+        (emo.w_tp === 0.U) -> wstrb_b
     ))
     io.ram.wdata := MuxCase(emo.src3, Seq(
-        (emo.w_tp === 2.U) -> wd_h,
-        (emo.w_tp === 1.U) -> wd_b
+        (emo.w_tp === 1.U) -> wd_h,
+        (emo.w_tp === 0.U) -> wd_b
     ))
+
+    when (!es_allowin) {
+        csr_rvalid := true.B
+        csr_rdata  := io.csr.rdata
+    }
+    val pass_csr    = Mux(csr_rvalid, csr_rdata, io.csr.rdata)
+    val pass_alu    = Mux(emo.w_tp(3).asBool || emo.funct === func.csrrd, pass_csr, alu_out)
 
     io.es_allowin  := es_allowin
 
@@ -143,11 +160,27 @@ class EX extends Module {
     io.to_ms.funct := emo.funct
     io.to_ms.w_tp  := emo.w_tp
     io.to_ms.mod4  := mod4
-    io.to_ms.res   := alu_out
+    io.to_ms.res   := pass_alu
     io.to_ms.dest  := emo.dest
 
     io.bypass.valid   := es_valid && emo.w_tp(4).asBool
     io.bypass.stall   := emo.funct =/= func.load
     io.bypass.dest    := emo.dest
-    io.bypass.value   := alu_out
+    io.bypass.value   := pass_alu
+
+    // opt 0/idle 1/excp 2/ertn
+    io.csr.opt        := MuxCase(0.U, Seq(
+        !es_valid                   -> 0.U,
+        (ecode =/= ECODE.NONE)      -> 1.U,
+        (emo.funct === func.ertn)   -> 2.U
+    ))
+    io.csr.pc         := emo.pc
+    io.csr.wvalid     := es_valid && emo.w_tp(3).asBool
+    io.csr.waddr      := emo.csrnum
+    io.csr.wdata      := emo.src3
+    io.csr.wmask      := Mux(emo.funct === func.csrxchg, emo.src1, "hffffffff".U(data_len.W))
+    io.csr.raddr      := emo.csrnum
+    io.csr.badv       := sum_t
+    io.csr.evalid     := evalid
+    io.csr.ecode      := ecode
 }
