@@ -38,7 +38,7 @@ class WB extends Module {
     io.debug.wb_rf_wnum  := www.dest
     io.debug.wb_rf_wdata := www.res
 
-    io.bypass.valid := ws_valid && www.w_tp(4).asBool
+    io.bypass.valid := ws_valid && www.w_tp(4).asBool && www.dest =/= 0.U
     io.bypass.stall := true.B
     io.bypass.dest  := www.dest
     io.bypass.value := www.res

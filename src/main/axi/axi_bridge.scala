@@ -20,6 +20,7 @@ class axi_bridge extends Module {
     when (io.axi.arvalid) {
         when(io.axi.arready) {
             ar_sel_lock := false.B
+            ar_sel_val  := false.B
         }.otherwise {
             ar_sel_lock := true.B
             ar_sel_val  := ar_id

@@ -21,7 +21,7 @@ class MEM extends Module {
 
     val momo        = RegInit(0.U.asTypeOf(new ioport.to_ms_bus()))
     val ms_valid    = RegInit(false.B)
-    val ms_ready    = !ms_valid || (!(momo.funct === func.store || momo.funct === func.load) || io.ram.data_ok)
+    val ms_ready    = (!(momo.funct === func.store || momo.funct === func.load) || io.ram.data_ok)
     val ms_allowin  = !ms_valid || (ms_ready && io.ws_allowin)
     when (ms_allowin) {
         ms_valid := io.fr_es_valid
@@ -54,7 +54,7 @@ class MEM extends Module {
     io.to_ws.res    := Mux(momo.funct === func.load, real_dat, momo.res)
     io.to_ws.dest   := momo.dest
 
-    io.bypass.valid := ms_valid && momo.w_tp(4).asBool
+    io.bypass.valid := ms_valid && momo.w_tp(4).asBool && momo.dest =/= 0.U
     io.bypass.stall := momo.funct =/= func.load || ms_ready
     io.bypass.dest  := momo.dest
     io.bypass.value := Mux(momo.funct === func.load, real_dat, momo.res)

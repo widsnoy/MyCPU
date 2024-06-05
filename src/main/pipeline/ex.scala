@@ -27,6 +27,7 @@ class EX extends Module {
     }) 
     
     val addr_err   = Wire(Bool())
+    val evalid     = Wire(Bool())
     val csr_rvalid = RegInit(false.B)
     val csr_rdata  = RegInit(0.U(data_len.W))
     val div_rvalid = RegInit(false.B)
@@ -35,7 +36,7 @@ class EX extends Module {
     val mul_rdata  = RegInit(0.U(64.W))
     val emo        = RegInit(0.U.asTypeOf(new ioport.to_es_bus()))
     val es_valid   = RegInit(false.B)
-    val es_ready   = !es_valid || ((!(emo.funct === func.store || emo.funct === func.load) || io.ram.addr_ok || addr_err) && (!io.div.en || io.div.ready || div_rvalid) && (!io.mul.en || io.mul.ready || mul_rvalid))
+    val es_ready   = ((!(emo.funct === func.store || emo.funct === func.load) || io.ram.addr_ok) && (!io.div.en || io.div.ready || div_rvalid) && (!io.mul.en || io.mul.ready || mul_rvalid)) || evalid
     val es_allowin = !es_valid || (es_ready && io.ms_allowin)
 
     when (es_allowin) {
@@ -105,7 +106,7 @@ class EX extends Module {
     ))
 
     addr_err     := (emo.funct === func.store || emo.funct === func.load) && ((emo.w_tp(1, 0) === 2.U && sum_t(1, 0) =/= 0.U) || (emo.w_tp(1, 0) === 1.U && sum_t(1, 0) =/= 0.U && sum_t(1, 0) =/= 2.U))
-    val evalid    = emo.evalid || addr_err
+    evalid       := emo.evalid || addr_err
     val ecode     = MuxCase(ECODE.NONE, Seq(
         emo.evalid -> emo.ecode,
         addr_err   -> ECODE.ALE
@@ -134,7 +135,7 @@ class EX extends Module {
     val mod4      = alu_out(1, 0)
     val wstrb_h   = Mux(mod4 === 0.U, "b0011".U, "b1100".U)
     val wstrb_b   = (1.U(32.W) << mod4)(3, 0)
-    io.ram.req   := es_valid && (emo.funct === func.store || emo.funct === func.load) && io.ms_allowin && !addr_err
+    io.ram.req   := es_valid && (emo.funct === func.store || emo.funct === func.load) && io.ms_allowin && !evalid
     io.ram.wr    := emo.funct === func.store
     io.ram.addr  := sum_t
     io.ram.size  := 0.U(1.W) ## emo.w_tp(1, 0)
@@ -164,7 +165,7 @@ class EX extends Module {
     io.to_ms.res   := pass_alu
     io.to_ms.dest  := emo.dest
 
-    io.bypass.valid   := es_valid && emo.w_tp(4).asBool
+    io.bypass.valid   := es_valid && emo.w_tp(4).asBool && emo.dest =/= 0.U
     io.bypass.stall   := emo.funct =/= func.load
     io.bypass.dest    := emo.dest
     io.bypass.value   := pass_alu
@@ -176,7 +177,7 @@ class EX extends Module {
         (emo.funct === func.ertn)   -> 2.U
     ))
     io.csr.pc         := emo.pc
-    io.csr.wvalid     := es_valid && emo.w_tp(3).asBool
+    io.csr.wvalid     := es_valid && emo.w_tp(3).asBool && !evalid
     io.csr.waddr      := emo.csrnum
     io.csr.wdata      := emo.src3
     io.csr.wmask      := Mux(emo.funct === func.csrxchg, emo.src1, "hffffffff".U(data_len.W))
