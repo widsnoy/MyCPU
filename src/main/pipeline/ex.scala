@@ -26,16 +26,17 @@ class EX extends Module {
         val csr         = new ioport.csr_interface()
     }) 
     
+    val addr_err   = Wire(Bool())
     val csr_rvalid = RegInit(false.B)
     val csr_rdata  = RegInit(0.U(data_len.W))
     val div_rvalid = RegInit(false.B)
     val div_rdata  = RegInit(0.U(64.W))
     val mul_rvalid = RegInit(false.B)
     val mul_rdata  = RegInit(0.U(64.W))
-    val emo         = RegInit(0.U.asTypeOf(new ioport.to_es_bus()))
-    val es_valid    = RegInit(false.B)
-    val es_ready    = !es_valid || ((!(emo.funct === func.store || emo.funct === func.load) || io.ram.addr_ok) && (!io.div.en || io.div.ready || div_rvalid) && (!io.mul.en || io.mul.ready || mul_rvalid))
-    val es_allowin  = !es_valid || (es_ready && io.ms_allowin)
+    val emo        = RegInit(0.U.asTypeOf(new ioport.to_es_bus()))
+    val es_valid   = RegInit(false.B)
+    val es_ready   = !es_valid || ((!(emo.funct === func.store || emo.funct === func.load) || io.ram.addr_ok || addr_err) && (!io.div.en || io.div.ready || div_rvalid) && (!io.mul.en || io.mul.ready || mul_rvalid))
+    val es_allowin = !es_valid || (es_ready && io.ms_allowin)
 
     when (es_allowin) {
         es_valid    := io.fr_ds_valid 
@@ -103,11 +104,11 @@ class EX extends Module {
         (emo.funct === func.mod_sig || emo.funct === func.mod_uns) -> rem
     ))
 
-    val addr_err  = (emo.funct === func.store || emo.funct === func.load) && ((emo.w_tp(1, 0) === 2.U && sum_t(1, 0) =/= 0.U) || (emo.w_tp(1, 0) === 1.U && sum_t(1, 0) =/= 0.U && sum_t(1, 0) =/= 2.U))
+    addr_err     := (emo.funct === func.store || emo.funct === func.load) && ((emo.w_tp(1, 0) === 2.U && sum_t(1, 0) =/= 0.U) || (emo.w_tp(1, 0) === 1.U && sum_t(1, 0) =/= 0.U && sum_t(1, 0) =/= 2.U))
     val evalid    = emo.evalid || addr_err
     val ecode     = MuxCase(ECODE.NONE, Seq(
         emo.evalid -> emo.ecode,
-        addr_err  -> ECODE.ALE
+        addr_err   -> ECODE.ALE
     ))
 
     // branch
@@ -155,7 +156,7 @@ class EX extends Module {
 
     io.es_allowin  := es_allowin
 
-    io.to_ms_valid := es_valid && es_ready
+    io.to_ms_valid := es_valid && es_ready && !evalid
     io.to_ms.pc    := emo.pc
     io.to_ms.funct := emo.funct
     io.to_ms.w_tp  := emo.w_tp

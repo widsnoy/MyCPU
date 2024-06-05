@@ -119,7 +119,7 @@ class CSR extends Module {
         }
     }
 
-    val TVAL_edge = ShiftRegister(TVAL.info.timeval, 1)
+    val TVAL_edge = RegNext(TVAL.info.timeval)
     when (TCFG.info.en && TVAL.info.timeval === 0.U && TVAL_edge === 1.U) {
         ESTAT.info.is_11 := true.B
     }

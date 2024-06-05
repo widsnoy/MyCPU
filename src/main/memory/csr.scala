@@ -188,7 +188,7 @@ class TVAL_info extends Bundle {
 }
 
 class TVAL extends base {
-  override val info = RegInit(Cat(0.U((32 - timer_len).W), 233.U(timer_len.W)).asTypeOf(new TVAL_info))
+  override val info = RegInit(Cat(0.U((32 - timer_len).W), 0.U(timer_len.W)).asTypeOf(new TVAL_info))
   override val id   = CSR.TVAL
   override val wa   = "b0000_0000_0000_0000_0000_0000_0000_0000".U
 }

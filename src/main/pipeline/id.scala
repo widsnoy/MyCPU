@@ -81,10 +81,10 @@ class ID extends Module {
     1 0   4byte
     0 1   2byte
     0 0   1byte
-    特别的，置 00011 表示触发例外
+    特别的，置 00111 表示触发例外
     */
 
-    val Decode = ListLookup(ds_bus.inst, List(func.noth, op1.noth, op2.noth,"b00000".U(5.W)), Array (     
+    val Decode = ListLookup(ds_bus.inst, List(func.noth, op1.noth, op2.noth,"b00111".U(5.W)), Array (     
         inst.add_w       -> List(func.add,      op1.rj,     op2.rk,         "b10010".U(5.W)),
         inst.sub_w       -> List(func.sub,      op1.rj,     op2.rk,         "b10010".U(5.W)),
         inst.slt         -> List(func.slt,      op1.rj,     op2.rk,         "b10010".U(5.W)),
@@ -134,9 +134,9 @@ class ID extends Module {
         inst.csrrd       -> List(func.csrrd,    op1.noth,   op2.noth,       "b10011".U(5.W)),
         inst.csrwr       -> List(func.csrwr,    op1.noth,   op2.noth,       "b11011".U(5.W)),
         inst.csrxchg     -> List(func.csrxchg,  op1.noth,   op2.noth,       "b11011".U(5.W)),
-        inst.syscall     -> List(func.syscall,  op1.noth,   op2.noth,       "b00011".U(5.W)),
+        inst.syscall     -> List(func.syscall,  op1.noth,   op2.noth,       "b00111".U(5.W)),
         inst.ertn        -> List(func.ertn,     op1.noth,   op2.noth,       "b00001".U(5.W)),
-        inst.break       -> List(func.break,    op1.noth,   op2.noth,       "b00011".U(5.W)),
+        inst.break       -> List(func.break,    op1.noth,   op2.noth,       "b00111".U(5.W)),
         inst.rdcntid     -> List(func.add,      op1.noth,   op2.rdcntid,    "b10011".U(5.W)),
         inst.rdcntvlw    -> List(func.add,      op1.noth,   op2.counterl,   "b10011".U(5.W)),
         inst.rdcntvhw    -> List(func.add,      op1.noth,   op2.counterh,   "b10011".U(5.W))
@@ -144,7 +144,7 @@ class ID extends Module {
     val funct :: op1_tp :: op2_tp :: w_tp :: Nil = Decode
 
     val op1_v = MuxCase(0.U(data_len.W), Seq(
-        (op1_tp === op1.rj) -> rj_data    ,
+        (op1_tp === op1.rj) -> rj_data,
         (op1_tp === op1.pc) -> ds_bus.pc
     ))
     val op2_v = MuxCase(0.U(data_len.W), Seq(
@@ -156,19 +156,14 @@ class ID extends Module {
         (op2_tp === op2.of16)     -> of16,
         (op2_tp === op2.of26)     -> of26,
         (op2_tp === op2.rdcntid)  -> io.csr.tid,
-        (op2_tp === op2.counterl) -> stable_counter(63, 32),
-        (op2_tp === op2.counterh) -> stable_counter(31, 0)       
+        (op2_tp === op2.counterh) -> stable_counter(63, 32),
+        (op2_tp === op2.counterl) -> stable_counter(31, 0)       
         
     ))
 
     io.yuki         := io.rain
     io.ds_allowin   := ds_allowin
-    val snow         = RegInit(false.B)
-    when (io.csr.snow) {
-        snow        := true.B
-    }.elsewhen (ds_allowin && io.to_es_valid) {
-        snow        := false.B
-    }
+    val snow         = RegNext(io.csr.snow && !(io.to_es_valid && io.es_allowin))
 
     io.to_es_valid  := ds_valid && ds_ready && !io.rain
     io.to_es.pc     := ds_bus.pc
@@ -183,7 +178,7 @@ class ID extends Module {
         (funct === func.bl)      -> 1.U(gpr_addr.W),
         (op2_tp === op2.rdcntid) -> rj
     ))
-    io.to_es.evalid := ds_bus.evalid || w_tp === "b00011".U || snow || io.csr.snow
+    io.to_es.evalid := ds_valid && (ds_bus.evalid || w_tp === "b00111".U || snow || io.csr.snow)
     io.to_es.ecode  := MuxCase(ECODE.NONE, Seq(
         (io.csr.snow || snow)    -> ECODE.INT,
         (ds_bus.evalid)          -> ds_bus.ecode,
