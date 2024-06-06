@@ -61,7 +61,7 @@ class EX extends Module {
     val br_t      = emo.pc + 4.U(pc_len.W)
 
 
-    io.div.en        := ((emo.funct === func.mod_sig) || (emo.funct === func.mod_uns) || (emo.funct === func.div_uns) || (emo.funct === func.div_sig))
+    io.div.en        := es_valid && !evalid && ((emo.funct === func.mod_sig) || (emo.funct === func.mod_uns) || (emo.funct === func.div_uns) || (emo.funct === func.div_sig))
     io.div.signed    := ((emo.funct === func.mod_sig) || (emo.funct === func.div_sig))
     io.div.op1       := emo.op1
     io.div.op2       := emo.op2
@@ -71,7 +71,7 @@ class EX extends Module {
     }
     val div_emo    = Mux(div_rvalid, div_rdata, io.div.result)
 
-    io.mul.en        := ((emo.funct === func.mulh) || (emo.funct === func.mull) || (emo.funct === func.mulhu))
+    io.mul.en        := es_valid && !evalid && ((emo.funct === func.mulh) || (emo.funct === func.mull) || (emo.funct === func.mulhu))
     io.mul.signed    := (emo.funct =/= func.mulhu)
     io.mul.op1       := emo.op1
     io.mul.op2       := emo.op2
