@@ -28,8 +28,6 @@ class EX extends Module {
     
     val addr_err   = Wire(Bool())
     val evalid     = Wire(Bool())
-    val csr_rvalid = RegInit(false.B)
-    val csr_rdata  = RegInit(0.U(data_len.W))
     val div_rvalid = RegInit(false.B)
     val div_rdata  = RegInit(0.U(64.W))
     val mul_rvalid = RegInit(false.B)
@@ -44,7 +42,6 @@ class EX extends Module {
         emo         := io.fr_ds
         div_rvalid  := false.B
         mul_rvalid  := false.B
-        csr_rvalid  := false.B
     }
 
     val sum_t     = emo.op1 + emo.op2
@@ -148,12 +145,7 @@ class EX extends Module {
         (emo.w_tp === 0.U) -> wd_b
     ))
 
-    when (!es_allowin) {
-        csr_rvalid := true.B
-        csr_rdata  := io.csr.rdata
-    }
-    val pass_csr    = Mux(csr_rvalid, csr_rdata, io.csr.rdata)
-    val pass_alu    = Mux(emo.w_tp(3).asBool || emo.funct === func.csrrd, pass_csr, alu_out)
+    val pass_alu    = Mux(emo.w_tp(3).asBool || emo.funct === func.csrrd, io.csr.rdata, alu_out)
 
     io.es_allowin  := es_allowin
 
@@ -177,7 +169,7 @@ class EX extends Module {
         (emo.funct === func.ertn)   -> 2.U
     ))
     io.csr.pc         := emo.pc
-    io.csr.wvalid     := es_valid && emo.w_tp(3).asBool && !evalid
+    io.csr.wvalid     := es_valid && emo.w_tp(3).asBool && !evalid && io.ms_allowin
     io.csr.waddr      := emo.csrnum
     io.csr.wdata      := emo.src3
     io.csr.wmask      := Mux(emo.funct === func.csrxchg, emo.src1, "hffffffff".U(data_len.W))

@@ -18,6 +18,7 @@ class PreIF extends Module {
     val ice         = RegInit(false.B)
     val to_pf_valid = RegNext(!reset.asBool)
     val pf_ready    = io.ram.addr_ok
+    //val pc          = RegInit("h7ffffffc".asUInt(pc_len.W))
     val pc          = RegInit("h1bfffffc".asUInt(pc_len.W))
     val br_flag     = RegInit(false.B)
     val br_target   = RegInit(0.U(pc_len.W))
